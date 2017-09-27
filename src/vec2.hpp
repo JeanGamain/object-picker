@@ -175,7 +175,7 @@ struct vec2
 
 	cordinate	dot(const vec2 & b) const
 	{
-		return{ x * b.x + y * b.y };
+		return { x * b.x + y * b.y };
 	}
 
 	cordinate	length() const
