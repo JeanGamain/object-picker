@@ -2,6 +2,7 @@
 # define MATH_HPP_
 
 #include <math.h>
+#include <float.h>
 #include <stdint.h>
 
 #ifndef M_E
@@ -72,8 +73,12 @@
 #define M_SQRT3	       1.73205080756887729352  /* sqrt(3) */
 #endif
 
+#define FMAX FLT_MAX;
+
+#define NFMAX -FLT_MAX;
+
 #ifndef RAD
-#define	RAD(a) (M_PI * (a) / 180)
+#define	RAD(a) (M_PI * (a) / 180.0)
 #endif
 
 #ifndef ABS
@@ -89,8 +94,9 @@
 #define	CIRCULAR_SUB(nb, max, val) ((nb < val) ? (max - (val - nb)) : (nb - val))
 #endif
 
-#define FMAX FLT_MAX;
-#define -FMAX -FLT_MAX;
+#ifndef NORM
+#define NORM(nb, max, min) ((nb - min) / (max - min))
+#endif
 
 typedef int32_t	cordinate;
 

@@ -6,15 +6,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "pixelf.hpp"
 #include "convolution.hpp"
 #include "gaussian.hpp"
-
-typedef struct {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-  uint8_t nothing;
-} rgb_t;
 
 /*
  * Links:
@@ -25,45 +19,39 @@ typedef struct {
  *
  * Note: T1 and T2 are lower and upper thresholds.
  */
-pixel_t *canny_edge_detection(const pixel_t *in,
-			      const bitmap_info_header_t *bmp_ih,
-			      const int tmin, const int tmax,
-			      const float sigma)
+void canny_edge_detection(const image<pixel16> * in,
+			  const image<pixel16> * out,
+			  const int tmin, const int tmax,
+			  const float sigma)
 {
-  const vec2 n = image.size;
+  assert(in->pixel != NULL && out->pixel != NULL);
+  const vec2 n = in->size;
 
-  pixel_t *G = calloc(n.x * n.y * sizeof(pixel_t), 1); // use malloc (new ?)
-  pixel_t *after_Gx = calloc(n.x * n.y * sizeof(pixel_t), 1);
-  pixel_t *after_Gy = calloc(n.x * n.y * sizeof(pixel_t), 1);
-  pixel_t *nms = calloc(n.x * n.y * sizeof(pixel_t), 1);
-  pixel_t *out = malloc(bmp_ih->bmp_bytesz * sizeof(pixel_t));
+  image<pixelf> *G = new image<pixelf>(n);
+  image<pixelf>  *after_Gx = new image<pixelf>(n);
+  image<pixelf>  *after_Gy = new image<pixelf>(n);
+  image<pixelf>  *nms = new image<pixelf>(n);
+ 
 
-  if (G == NULL || after_Gx == NULL || after_Gy == NULL ||
-      nms == NULL || out == NULL) {
-    fprintf(stderr, "canny_edge_detection:"
-	    " Failed memory allocation(s).\n");
-    exit(1);
-  }
+  gaussian_filter(in->pixel, out->pixel, n, sigma);
 
-  gaussian_filter(in, out, n, sigma);
+  const pixelf Gx[] = {-1, 0, 1,
+		       -2, 0, 2,
+		       -1, 0, 1};
+  
+  convolution(out->pixel, after_Gx->pixel, Gx, 3, n);
 
-  const float Gx[] = {-1, 0, 1,
-		      -2, 0, 2,
-		      -1, 0, 1};
-
-  convolution(out, after_Gx, Gx, 3, n);
-
-  const float Gy[] = { 1, 2, 1,
-		       0, 0, 0,
-		       -1,-2,-1};
-
-  convolution(out, after_Gy, Gy, 3, n);
+  const pixelf Gy[] = { 1, 2, 1,
+			0, 0, 0,
+			-1,-2,-1};
+  
+  convolution(out->pixel, after_Gy->pixel, Gy, 3, n);
 
   for (int x = 1; x < n.x - 1; x++)
     for (int y = 1; y < n.y - 1; y++) {
       const int c = y + n.x * x;
       // G[c] = abs(after_Gx[c]) + abs(after_Gy[c]);
-      G[c] = (pixel_t)hypot(after_Gx[c], after_Gy[c]);
+      G->pixel[c].set((uint16_t)(hypot(after_Gx->pixel[c].get(), after_Gy->pixel[c].get())));
     }
 
   // Non-maximum suppression, straightforward implementation.
@@ -79,36 +67,36 @@ pixel_t *canny_edge_detection(const pixel_t *in,
       const int sw = ss + 1;
       const int se = ss - 1;
 
-      const float dir = (float)(fmod(atan2(after_Gy[c],
-					   after_Gx[c]) + M_PI,
+      const float dir = (float)(fmod(atan2(after_Gy->pixel[c].get(),
+					   after_Gx->pixel[c].get()) + M_PI,
 				     M_PI) / M_PI) * 8;
 
-      if (((dir <= 1 || dir > 7) && G[c] > G[ee] &&
-	   G[c] > G[ww]) || // 0 deg
-	  ((dir > 1 && dir <= 3) && G[c] > G[nw] &&
-	   G[c] > G[se]) || // 45 deg
-	  ((dir > 3 && dir <= 5) && G[c] > G[nn] &&
-	   G[c] > G[ss]) || // 90 deg
-	  ((dir > 5 && dir <= 7) && G[c] > G[ne] &&
-	   G[c] > G[sw]))   // 135 deg
-	nms[c] = G[c];
+      if (((dir <= 1 || dir > 7) && G->pixel[c] > G->pixel[ee] &&
+	   G->pixel[c] > G->pixel[ww]) || // 0 deg
+	  ((dir > 1 && dir <= 3) && G->pixel[c] > G->pixel[nw] &&
+	   G->pixel[c] > G->pixel[se]) || // 45 deg
+	  ((dir > 3 && dir <= 5) && G->pixel[c] > G->pixel[nn] &&
+	   G->pixel[c] > G->pixel[ss]) || // 90 deg
+	  ((dir > 5 && dir <= 7) && G->pixel[c] > G->pixel[ne] &&
+	   G->pixel[c] > G->pixel[sw]))   // 135 deg
+	nms->pixel[c] = G->pixel[c];
       else
-	nms[c] = 0;
+	nms->pixel[c] = 0;
     }
   }
   
   // Reuse array
   // used as a stack. nx*ny/2 elements should be enough.
-  int *edges = (int*) after_Gy; // realloc --
-  memset(out, 0, sizeof(pixel_t) * n.x * n.y);
-  memset(edges, 0, sizeof(pixel_t) * n.x * n.y);
+  int *edges = (int*) after_Gy->pixel; // realloc --
+  memset(out->pixel, 0, sizeof(pixelf) * n.x * n.y);
+  memset(edges, 0, sizeof(int) * n.x * n.y);
 
   // Tracing edges with hysteresis . Non-recursive implementation.
   size_t c = 1;
   for (int y = 1; y < n.y - 1; y++)
     for (int x = 1; x < n.x - 1; x++) {
-      if (nms[c] >= tmax && out[c] == 0) { // trace edges
-	out[c] = MAX_BRIGHTNESS; // IFX --------
+      if (nms->pixel[c] >= tmax && out->pixel[c] == 0) { // trace edges
+	out->pixel[c] = 0xffff;
 	int nedges = 1;
 	edges[0] = c;
 
@@ -127,8 +115,8 @@ pixel_t *canny_edge_detection(const pixel_t *in,
 	  nbs[7] = nbs[1] - 1; // se
 
 	  for (int k = 0; k < 8; k++)
-	    if (nms[nbs[k]] >= tmin && out[nbs[k]] == 0) {
-	      out[nbs[k]] = MAX_BRIGHTNESS;
+	    if (nms->pixel[nbs[k]] >= tmin && out->pixel[nbs[k]] == 0) { // make == >= operator
+	      out->pixel[nbs[k]].set(0xff);
 	      edges[nedges] = nbs[k];
 	      nedges++;
 	    }
@@ -136,11 +124,8 @@ pixel_t *canny_edge_detection(const pixel_t *in,
       }
       c++;
     }
-
-  free(after_Gx);
-  free(after_Gy);
-  free(G);
-  free(nms);
-
-  return out;
+  delete(G);
+  delete(after_Gx);
+  delete(after_Gy);
+  delete(nms);
 }

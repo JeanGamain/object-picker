@@ -74,7 +74,7 @@ struct vec3
 
 	vec3 		operator%(const vec3 & b) const
 	{
-		return{ fmod(x, b.x), fmod(y, b.y), fmod(z, b.z) };
+	  return { (cordinate)fmod(x, b.x), (cordinate)fmod(y, b.y), (cordinate)fmod(z, b.z) };
 	}
 
 	vec3 & 		operator-=(const vec3 & b)
@@ -111,10 +111,10 @@ struct vec3
 
 	vec3 & 		operator%=(const vec3 & b)
 	{
-		x = fmod(x, b.x);
-		y = fmod(y, b.y);
-		z = fmod(z, b.z);
-		return *this;
+	  x = (cordinate)(fmod(x, b.x));
+	  y = (cordinate)(fmod(y, b.y));
+	  z = (cordinate)(fmod(z, b.z));
+	  return *this;
 	}
 
 
@@ -140,7 +140,7 @@ struct vec3
 
 	vec3 		operator%(const cordinate b) const
 	{
-		return{ fmod(x, b), fmod(y, b), fmod(z, b) };
+	  return{ (cordinate)fmod(x, b), (cordinate)fmod(y, b), (cordinate)fmod(z, b) };
 	}
 
 	vec3 & 		operator-=(const cordinate b)
@@ -229,32 +229,32 @@ struct vec3
 	}
 
 	
-	vec3 & 	rotateByCache(vec3 sin, vec3 cos)
-	{
-		vec3	save = *this;
+  vec3 & 	rotateByCache(double *sin, double *cos)
+  {
+    vec3	save = *this;
 
-		x = (save.x * (cos.y * cos.z)
-			+ save.y * (-cos.x * sin.z
-			+ sin.x * sin.y * cos.z)
-			+ save.z * (sin.x * sin.z
-			+ cos.x * sin.y * cos.z));
-		y = (save.x * (cos.y * sin.z)
-			+ save.y * (cos.x * cos.z
-			+ sin.x * sin.y * sin.z)
-			+ save.z * (-sin.x * cos.z
-			+ cos.x * sin.y * sin.z));
-		z = (save.x * (-sin.x)
-			+ save.y * (sin.x * cos.y)
-			+ save.z * (cos.x * cos.y));
-		return *this;
-	}
+    x = (cordinate)(save.x * (cos[1] * cos[2])
+		    + save.y * (-cos[0] * sin[2]
+				+ sin[0] * sin[1] * cos[2])
+		    + save.z * (sin[0] * sin[2]
+				+ cos[0] * sin[1] * cos[2]));
+    y = (cordinate)(save.x * (cos[0] * sin[2])
+		    + save.y * (cos[0] * cos[2]
+				+ sin[0] * sin[1] * sin[2])
+		    + save[2] * (-sin[0] * cos[2]
+				 + cos[0] * sin[1] * sin[2]));
+    z = (cordinate)(save.x * (-sin[0])
+		    + save.y * (sin[0] * cos[1])
+		    + save.z * (cos[0] * cos[1]));
+    return *this;
+  }
 
 	vec3 &		rotate(vec3 angle)
 	{
-		vec3	radangle = { RAD(angle.x), RAD(angle.y), RAD(angle.z) };
-		vec3	tmpsin = { sin(radangle.x), sin(radangle.y), sin(radangle.z) };
-		vec3	tmpcos = { cos(radangle.x), cos(radangle.y), cos(radangle.z) };
-		return rotateByCache(tmpsin, tmpcos);
+	  double radangle[3] = { RAD(angle.x), RAD(angle.y), RAD(angle.z) };
+	  double tmpsin[3] = { sin(radangle[0]), sin(radangle[1]), sin(radangle[2]) };
+	  double tmpcos[3] = { cos(radangle[0]), cos(radangle[1]), cos(radangle[2]) };
+	  return rotateByCache(tmpsin, tmpcos);
 	}
 };
 

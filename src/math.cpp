@@ -23,7 +23,7 @@ void		rotate(vec3 & vec, vec3 angle)
   rotate_cordinate(vec, tmpsin, tmpcos);
 }
 
-void		rotate_cordinate(vec3 & var, vec3 tmpsin, vec3 tmpcos)
+void		rotate_cordinate(vec3 & var, double *tmpsin, double *tmpcos)
 {
   double	save[3];
   

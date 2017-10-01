@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 project(objectpicker)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -O3 -lvlc")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -O3 -g3")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 endif()
 
@@ -12,6 +12,9 @@ set(EXECUTABLE_OUTPUT_PATH ../bin/)
 
 set(${PROJECT_NAME}_src
 	./src/main.cpp
+	./src/gaussian.cpp
+	./src/canny.cpp
+	./src/convolution.cpp
 	)
 
 set(objectpicker_includes_directories

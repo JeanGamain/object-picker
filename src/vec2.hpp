@@ -58,7 +58,7 @@ struct vec2
 
 	vec2 		operator%(const vec2 & b) const
 	{
-		return{ fmod(x, b.x), fmod(y, b.y) };
+	  return{ (cordinate)fmod(x, b.x), (cordinate)fmod(y, b.y) };
 	}
 
 	vec2 & 		operator-=(const vec2 & b)
@@ -91,9 +91,9 @@ struct vec2
 
 	vec2 & 		operator%=(const vec2 & b)
 	{
-		x = fmod(x, b.x);
-		y = fmod(y, b.y);
-		return *this;
+	  x = (cordinate)fmod(x, b.x);
+	  y = (cordinate)fmod(y, b.y);
+	  return *this;
 	}
 
 
@@ -119,7 +119,7 @@ struct vec2
 
 	vec2 		operator%(const cordinate b) const
 	{
-		return{ fmod(x, b), fmod(y, b) };
+	  return{ (cordinate)fmod(x, b), (cordinate)fmod(y, b) };
 	}
 
 	vec2 & 		operator-=(const cordinate b)
@@ -152,9 +152,9 @@ struct vec2
 
 	vec2 & 		operator%=(const cordinate b)
 	{
-		x = fmod(x, b);
-		y = fmod(y, b);
-		return *this;
+	  x = (cordinate)fmod(x, b);
+	  y = (cordinate)fmod(y, b);
+	  return *this;
 	}
 
 	vec2		operator-() const
@@ -191,18 +191,17 @@ struct vec2
 		return *this;
 	}
 
-	vec2 & 	rotateByCache(cordinate sin, cordinate cos)
-	{
-		x = x * cos - y * sin;
-		y = x * sin + y * cos;
-		return *this;
-	}
-
-	vec2 &		rotate(cordinate angle)
-	{
-		angle = RAD(angle);
-		return rotateByCache(sin(angle), cos(angle));
-	}
+  vec2 & 	rotateByCache(double sin, double cos)
+  {
+    x = (cordinate)(x * cos - y * sin);
+    y = (cordinate)(x * sin + y * cos);
+    return *this;
+  }
+  
+  vec2 &		rotate(cordinate angle)
+  {
+    return rotateByCache(sin(RAD(angle)), cos(RAD(angle)));
+  }
 };
 
 #endif /* VEC2_HPP_ */

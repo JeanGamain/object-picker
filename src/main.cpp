@@ -13,6 +13,11 @@
 
 #include <vlc/vlc.h>
 
+#include "image.hpp"
+#include "pixel16.hpp"
+#include "pixel.hpp"
+#include "canny.hpp"
+
 #define WIDTH 720
 #define HEIGHT 480
 
@@ -99,7 +104,9 @@ static void unlock(void *data, void *id, void *const *p_pixels)
   struct ctx *ctx = static_cast<struct ctx *>(data);
 
   /* VLC just rendered the video, but we can also render stuff */
-  objectDetectionOverlay(p_pixels);
+  //objectDetectionOverlay(p_pixels);
+  image<pixel16> * img = new image<pixel16>(VIDEOHEIGHT, VIDEOWIDTH, static_cast<pixel16 *>(*p_pixels));
+  canny_edge_detection(img, img, 45, 50, 1.0f);
   SDL_UnlockSurface(ctx->surf);
   SDL_UnlockMutex(ctx->mutex);
 
