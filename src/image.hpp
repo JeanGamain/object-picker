@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "math.hpp"
-#include "pixel.hpp"
 #include "vec2.hpp"
 
 template <class T>
@@ -42,7 +41,7 @@ public:
     //memcpy(pixel, i, sizeof(T) * height * width);
   }
 
-  virtual ~image() {
+  ~image() {
     free(pixel);
   }
   

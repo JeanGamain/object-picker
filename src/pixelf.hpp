@@ -2,9 +2,10 @@
 # define PIXELF_HPP_
 
 #include "math.hpp"
-#include "pixel.hpp"
 
-struct pixelf: public pixel
+typedef float npixel;
+
+struct pixelf
 {
 public:
   float pixel;
@@ -38,25 +39,41 @@ public:
     : pixel(p.pixel)
   {}
   
+  pixelf &		operator=(const float p)
+  {
+    this->pixel = p;
+    return *this;
+  }
+  
   pixelf &		operator=(const pixelf & p)
   {
-  this->pixel = p.pixel;
-  return *this;
-}
+    this->pixel = p.pixel;
+    return *this;
+  }
   
   bool			operator>(pixelf const & b)
   {
-  return (this->pixel > b.pixel);
-}
+    return (this->pixel > b.pixel);
+  }
   
   bool	 		operator==(pixelf const & b)
   {
-  return (this->pixel == b.pixel);
-}
+    return (this->pixel == b.pixel);
+  }
+
+  bool	 		operator==(float const & b)
+  {
+    return (this->pixel == b);
+  }
   
+  bool			operator>=(float const & b)
+  {
+    return (this->pixel >= b);
+  }
+
   bool			operator>=(pixelf const & b)
   {
-  return (this->pixel >= b.pixel);
+    return (this->pixel >= b.pixel);
   }
 
   pixelf const &	operator-(pixelf const & b)
@@ -77,6 +94,10 @@ public:
     return *this;
   }
 
+  void set(float c) {
+    this->pixel = c;
+  }
+  /*
   void set(char c) {
     this->pixel = c;
   }
@@ -84,7 +105,7 @@ public:
   void set(char *c) {
     this->pixel = *c;
   }
-
+*/
   void get(char *p) const {
     p[0] = static_cast<char>(this->pixel);
   }
@@ -116,6 +137,7 @@ public:
   npixel get() const {
     return this->pixel;
   }
+
 };
 
 #endif /* !PIXELF_HPP_ */

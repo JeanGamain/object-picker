@@ -73,9 +73,9 @@
 #define M_SQRT3	       1.73205080756887729352  /* sqrt(3) */
 #endif
 
-#define FMAX FLT_MAX;
+#define FMAX FLT_MAX
 
-#define NFMAX -FLT_MAX;
+#define NFMAX -FLT_MAX
 
 #ifndef RAD
 #define	RAD(a) (M_PI * (a) / 180.0)
@@ -97,6 +97,8 @@
 #ifndef NORM
 #define NORM(nb, max, min) ((nb - min) / (max - min))
 #endif
+
+#define D2T1(x, y, xlen) (y * xlen + x)
 
 typedef int32_t	cordinate;
 

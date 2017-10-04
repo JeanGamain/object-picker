@@ -2,12 +2,13 @@
 # define PIXEL16_HPP_
 
 #include "math.hpp"
-#include "pixel.hpp"
+#include "pixelf.hpp"
+#include <stdio.h>
 
-struct pixel16: public pixel
+struct pixel16
 {
 public:
-  int16_t pixel;
+  uint16_t pixel;
   
   pixel16()
     : pixel(0)
@@ -63,7 +64,6 @@ public:
     this->set(Brgb);
     return *this;
   }
-  
   pixel16 const &	operator+(pixel16 const & b)
   {
     char Brgb[3];
@@ -75,11 +75,16 @@ public:
     this->set(Brgb);
     return *this;
   }
+  
 
-
+  void set(float rvb) {
+    rvb /= 255.0;
+    this->pixel = (uint16_t(rvb * 0x1f) & 0x1f) | ((uint16_t(rvb * 0x1f) & 0x1f) << 11) | ((uint16_t(rvb * 0x3f) & 0x3f) << 5); // 11 befor 5 to erase 6 of <<5
+  }
+  
   void set(char rvb) {
-    uint16_t p = rvb & 0x1f;
-    this->pixel = p | (p << 5) | (p << 11);    
+    uint16_t p = rvb & 0x3f;
+    this->pixel = p | (p << 11) | (p << 5);
   }
   
   void set(char *p) {
@@ -92,7 +97,7 @@ public:
   
   void get(char *p) const {
     p[0] = static_cast<char>(this->pixel & 0x001f);
-    p[1] = static_cast<char>(this->pixel & 0x07e0 >> 5);
+    p[1] = static_cast<char>(this->pixel & 0x03e0 >> 5);
     p[2] = static_cast<char>(this->pixel & 0xf800 >> 11);
   }
 
@@ -136,7 +141,37 @@ public:
   }
 
   npixel get() const {
-    return NORM((npixel)((this->pixel & 0x001f) + (this->pixel & 0x07e0 >> 5) + (this->pixel & 0xf800 >> 11)) / 3, -32768, 32768);
+    /*int n = this->pixel;
+    int i = 0;
+    if (n > 0) {
+    while (i < 16) {
+      if (n & 1)
+	printf("1");
+      else
+	printf("0");
+
+      n >>= 1;
+      i++;
+    }
+    }
+
+    printf("\n");
+
+
+       return (npixel)(
+		    (
+		     float(this->pixel & 0x1f) / 0x1f * 0.3 +
+		     float(this->pixel & 0x07e0 >> 5) / 0x3f * 0.59 +
+		     float(this->pixel & 0xf800 >> 11) / 0x1f * 0.11
+		     ) * 255);
+
+    */
+    return (npixel)(
+		    (
+		     float(this->pixel & 0x1f) / 0x1f +
+		     float(this->pixel & 0x07e0 >> 5) / 0x3f +
+		     float(this->pixel & 0xf800 >> 11) / 0x1f
+		     ) / 3 * 255);
   }
 
   
@@ -145,7 +180,7 @@ public:
   }
   
   char getv() const {
-    return static_cast<char>(this->pixel & 0x07e0 >> 5);
+    return static_cast<char>(this->pixel & 0x03e0 >> 5);
   }
   
   char getb() const {

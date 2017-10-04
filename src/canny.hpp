@@ -8,7 +8,7 @@
 
 void canny_edge_detection(const image<pixel16> * in,
 			  const image<pixel16> * out,
-			  const int tmin, const int tmax,
+			  const float tmin, const float tmax,
 			  const float sigma); // use generic image type
 
 #endif /* !CANNY_HPP_ */

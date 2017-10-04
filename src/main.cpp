@@ -15,7 +15,6 @@
 
 #include "image.hpp"
 #include "pixel16.hpp"
-#include "pixel.hpp"
 #include "canny.hpp"
 
 #define WIDTH 720
@@ -24,8 +23,8 @@
 #define VIDEOWIDTH 720
 #define VIDEOHEIGHT 480
 
-float diff = 0.4;
-
+float diff = 0;
+int pause = 0;
 struct ctx
 {
   SDL_Surface *surf;
@@ -101,12 +100,19 @@ static void objectDetectionOverlay(void *const *pixelsbuffer) {
 
 static void unlock(void *data, void *id, void *const *p_pixels)
 {
+  static char t = 1;
   struct ctx *ctx = static_cast<struct ctx *>(data);
 
   /* VLC just rendered the video, but we can also render stuff */
   //objectDetectionOverlay(p_pixels);
-  image<pixel16> * img = new image<pixel16>(VIDEOHEIGHT, VIDEOWIDTH, static_cast<pixel16 *>(*p_pixels));
-  canny_edge_detection(img, img, 45, 50, 1.0f);
+  if (t || pause) {
+    image<pixel16> * img = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT, static_cast<pixel16 *>(*p_pixels));
+    canny_edge_detection(img, img, 29, 56, 1.84f + diff);
+    t = 0;
+  } else {
+    t = 1;
+  }
+  printf("rdr\n");
   SDL_UnlockSurface(ctx->surf);
   SDL_UnlockMutex(ctx->mutex);
 
@@ -135,7 +141,7 @@ int main(int argc, char *argv[])
       SDL_Surface *screen, *empty;
       SDL_Event event;
       SDL_Rect rect;
-      int done = 0, action = 0, pause = 0;
+      int done = 0, action = 0;
       
       struct ctx ctx;
 
@@ -220,13 +226,13 @@ int main(int argc, char *argv[])
 	      libvlc_media_player_set_pause(mp, pause);
 	      break;
 	    case SDLK_o:
-	      if (diff + 0.01 < 1)
-		diff += 0.01;
+	      if (diff + 0.001 < 50)
+		diff += 0.001;
 	      printf("diff+ at %f\n", diff);
 	      break;
 	    case SDLK_p:
-	      if (diff - 0.01 > 0)
-		diff -= 0.01;
+	      if (diff - 0.001 > -2)
+		diff -= 0.001;
 	      printf("diff- at %f\n", diff);	      
 	      break;
 	    }
