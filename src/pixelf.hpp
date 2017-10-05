@@ -75,27 +75,19 @@ public:
   {
     return (this->pixel >= b.pixel);
   }
-
-  pixelf const &	operator-(pixelf const & b)
-  {
-    this->pixel -= b.pixel;
-    return *this;
-  }
   
-  pixelf const &	operator+(pixelf const & b)
+  inline float		operator*(pixelf const & b)
   {
-    this->pixel += b.pixel;
-    return *this;
+    return this->pixel * b.pixel;
   }
 
-  pixelf const &	operator+(double const & b)
-  {
-  this->pixel += (float)b;
-    return *this;
-  }
 
   void set(float c) {
     this->pixel = c;
+  }
+
+  void set(const pixelf & c) {
+    this->pixel = c.pixel;
   }
   /*
   void set(char c) {
@@ -134,7 +126,7 @@ public:
     }
   }
 
-  npixel get() const {
+  inline npixel get() const {
     return this->pixel;
   }
 

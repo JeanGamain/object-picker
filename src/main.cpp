@@ -17,14 +17,15 @@
 #include "pixel16.hpp"
 #include "canny.hpp"
 
-#define WIDTH 720
-#define HEIGHT 480
+#define WIDTH 520
+#define HEIGHT 380
 
-#define VIDEOWIDTH 720
-#define VIDEOHEIGHT 480
+#define VIDEOWIDTH 520
+#define VIDEOHEIGHT 380
 
 float diff = 0;
 int pause = 0;
+
 struct ctx
 {
   SDL_Surface *surf;
@@ -98,25 +99,35 @@ static void objectDetectionOverlay(void *const *pixelsbuffer) {
   }
 }
 
-static void unlock(void *data, void *id, void *const *p_pixels)
+static void unlock(void *data, void *, void *const *p_pixels)
 {
-  static char t = 1;
   struct ctx *ctx = static_cast<struct ctx *>(data);
 
   /* VLC just rendered the video, but we can also render stuff */
-  //objectDetectionOverlay(p_pixels);
-  if (t || pause) {
-    image<pixel16> * img = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT, static_cast<pixel16 *>(*p_pixels));
-    canny_edge_detection(img, img, 29, 56, 1.84f + diff);
-    t = 0;
-  } else {
-    t = 1;
+  image<pixel16> * img = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT, static_cast<pixel16 *>(*p_pixels));
+    //image<pixel16> * img2 = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT);
+
+  image<pixelf> *in = new image<pixelf>(img->size);
+  image<pixelf> *out = new image<pixelf>(img->size);
+  
+  for (int x = 0; x < in->size.x; x++) {
+    for (int y = 0; y < in->size.y; y++) {
+      in->pixel[y * in->size.x + x].set(img->pixel[y * in->size.x + x].get());
+    }
   }
+
+  canny_edge_detection(in, out, 255, 29, 56, 1.84f + diff);
+
+  for (int x = 0; x < img->size.x; x++) {
+    for (int y = 0; y < img->size.y; y++) {
+      if (out->pixel[y * img->size.x + x].get() == 255.0)
+	img->pixel[y * img->size.x + x].set(255.0f);
+    }
+  }
+
   printf("rdr\n");
   SDL_UnlockSurface(ctx->surf);
   SDL_UnlockMutex(ctx->mutex);
-
-  assert(id == NULL); /* picture identifier, not needed here */
 }
 
 static void display(void *data, void *id)

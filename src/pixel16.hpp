@@ -174,6 +174,18 @@ public:
 		     ) / 3 * 255);
   }
 
+  npixel getRnorm() const {
+    return (npixel)(float(this->pixel & 0x1f) / 0x1f * 255);
+  }
+
+  npixel getGnorm() const {
+    return (npixel)(float(this->pixel & 0x07e0 >> 5) / 0x3f * 255);
+  }
+
+  npixel getBnorm() const {
+    return (npixel)(float(this->pixel & 0xf800 >> 11) / 0x1f * 255);
+  }
+
   
   char getr() const {
     return static_cast<char>(this->pixel & 0x001f);

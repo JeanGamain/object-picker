@@ -6,8 +6,9 @@
 #include "image.hpp"
 #include "math.hpp"
 
-void canny_edge_detection(const image<pixel16> * in,
-			  const image<pixel16> * out,
+void canny_edge_detection(const image<pixelf> * in,
+			  const image<pixelf> * out,
+			  const pixelf color,
 			  const float tmin, const float tmax,
 			  const float sigma); // use generic image type
 

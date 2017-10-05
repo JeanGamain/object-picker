@@ -19,12 +19,14 @@ public:
     : size(vec2(width, height)), pixel(NULL)
   {
     pixel = (T*)malloc(sizeof(T) * width * height);
+    memset(pixel, 0, sizeof(T) * width * height);
   }
   
   image(vec2 size)
     : size(size), pixel(NULL)
   {
     pixel = (T*)malloc(sizeof(T) * size.x * size.y);
+    memset(pixel, 0, sizeof(T) * size.x * size.y);
   }
   
   image(image<T> const & i)

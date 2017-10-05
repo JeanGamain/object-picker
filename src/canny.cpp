@@ -21,57 +21,47 @@
  *
  * Note: T1 and T2 are lower and upper thresholds.
  */
-void canny_edge_detection(const image<pixel16> * inn,
-			  const image<pixel16> * outt,
+void canny_edge_detection(const image<pixelf> * in,
+			  const image<pixelf> * out,
+			  const pixelf color,
 			  const float tmin, const float tmax,
 			  const float sigma)
 {
-  
-  image<pixelf> *in = new image<pixelf>(inn->size);
-  image<pixelf> *out = new image<pixelf>(outt->size);
-
-  for (int x = 0; x < inn->size.x; x++) {
-    for (int y = 0; y < inn->size.y; y++) {
-      in->pixel[y * in->size.x + x].set(inn->pixel[y * in->size.x + x].get());
-      //out->pixel[y * in->size.x + x].set(inn->pixel[y * in->size.x + x].get());
-    }
-  }
   assert(in->pixel != NULL && out->pixel != NULL);
 
   const vec2 n = in->size;
 
-  image<pixelf> *G = new image<pixelf>(n);
-  image<pixelf>  *after_Gx = new image<pixelf>(n);
-  image<pixelf>  *after_Gy = new image<pixelf>(n);
+  image<pixelf>	 *G = new image<pixelf>(n);
+  image<pixelf>  *Gx = new image<pixelf>(n);
+  image<pixelf>	 *Gy = new image<pixelf>(n);
   image<pixelf>  *nms = new image<pixelf>(n);
  
-  gaussian_filter(in->pixel, out->pixel, n, sigma);
+  gaussian_filter(in->pixel, G->pixel, n, sigma);
 
-  const pixelf Gx[] = {-1, 0, 1,
+  const pixelf GMx[] = {-1, 0, 1,
 		       -2, 0, 2,
 		       -1, 0, 1};
   
-  convolution(out->pixel, after_Gx->pixel, Gx, 3, n);
-
-  const pixelf Gy[] = { 1, 2, 1,
+  convolution(G->pixel, Gx->pixel, GMx, 3, n);
+  
+  const pixelf GMy[] = { 1, 2, 1,
 			0, 0, 0,
 			-1,-2,-1};
   
-  convolution(out->pixel, after_Gy->pixel, Gy, 3, n);
-
+  convolution(G->pixel, Gy->pixel, GMy, 3, n);
+  
   for (int x = 1; x < n.x - 1; x++) {
     for (int y = 1; y < n.y - 1; y++) {
-      const int c = y + n.x * x;
-      // G[c] = abs(after_Gx[c]) + abs(after_Gy[c]);
-      //G->pixel[c].set((float)(hypot(after_Gx->pixel[c].get(), after_Gy->pixel[c].get())));
-      G->pixel[c].set(ABS(after_Gx->pixel[c].get() + after_Gy->pixel[c].get()));
+      const int c = y * n.x + x;
+      G->pixel[c].set((float)(hypot(Gx->pixel[c].get(), Gy->pixel[c].get())));
+      //G->pixel[c].set(ABS(after_Gx->pixel[c].get() + after_Gy->pixel[c].get()));
     }
   }
-  
+
   // Non-maximum suppression, straightforward implementation.
   for (int x = 1; x < n.x - 1; x++) {
     for (int y = 1; y < n.y - 1; y++) {
-      const int c = x + n.x * y;
+      const int c = n.x * y + x;
       const int nn = c - n.x;
       const int ss = c + n.x;
       const int ww = c + 1;
@@ -81,8 +71,8 @@ void canny_edge_detection(const image<pixel16> * inn,
       const int sw = ss + 1;
       const int se = ss - 1;
 
-      const float dir = (float)(fmod(atan2(after_Gy->pixel[c].get(),
-					   after_Gx->pixel[c].get()) + M_PI,
+      const float dir = (float)(fmod(atan2(Gy->pixel[c].get(),
+					   Gx->pixel[c].get()) + M_PI,
 				     M_PI) / M_PI) * 8;
 
       if (((dir <= 1 || dir > 7) && G->pixel[c] > G->pixel[ee] &&
@@ -100,17 +90,16 @@ void canny_edge_detection(const image<pixel16> * inn,
   }
   
   // Reuse array
-  // used as a stack. nx*ny/2 elements should be enough.
-  int *edges = (int*) after_Gy->pixel; // realloc --
-  memset(out->pixel, 0, sizeof(pixelf) * n.x * n.y);
-  memset(edges, 0, sizeof(int) * n.x * n.y);
+  int *edges = (int*) Gx->pixel; // realloc --
+  //memset(out->pixel, 0, sizeof(pixelf) * n.x * n.y);
+  memset(edges, 0, sizeof(pixelf) * n.x * n.y);
 
   // Tracing edges with hysteresis . Non-recursive implementation.
   size_t c = 1;
   for (int y = 1; y < n.y - 1; y++) {
     for (int x = 1; x < n.x - 1; x++) {
       if (nms->pixel[c] >= tmax && out->pixel[c] == 0.0) { // trace edges
-	out->pixel[c].set(255.0);
+	out->pixel[c].set(color);
 	int nedges = 1;
 	edges[0] = c;
 	do {
@@ -129,7 +118,7 @@ void canny_edge_detection(const image<pixel16> * inn,
 
 	  for (int k = 0; k < 8; k++) {
 	    if (nms->pixel[nbs[k]] >= tmin && out->pixel[nbs[k]] == 0.0) {
-	      out->pixel[nbs[k]].set(255.0);
+	      out->pixel[nbs[k]].set(color);
 	      edges[nedges] = nbs[k];
 	      nedges++;
 	    }
@@ -140,13 +129,6 @@ void canny_edge_detection(const image<pixel16> * inn,
       c++;
     }
   }  
-
-  
-  for (int x = 0; x < in->size.x; x++) {
-    for (int y = 0; y < in->size.y; y++) {
-      outt->pixel[y * in->size.x + x].set(out->pixel[y * in->size.x + x].get());
-    }
-  }
   
   /*  delete(G);
   delete(after_Gx);
