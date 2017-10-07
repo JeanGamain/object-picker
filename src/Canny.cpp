@@ -7,9 +7,8 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "pixelf.hpp"
-#include "pixel16.hpp"
 #include "convolution.hpp"
-#include "gaussian.hpp"
+#include "Gaussian.hpp"
 #include "math.hpp"
 
 /*
@@ -21,49 +20,52 @@
  *
  * Note: T1 and T2 are lower and upper thresholds.
  */
-void canny_edge_detection(const image<pixelf> * in,
-			  const image<pixelf> * out,
-			  const pixelf color,
-			  const float tmin, const float tmax,
-			  const float sigma)
+
+Canny::Canny(vec2 const & size, const pixelf color, const float tmin,
+	     const float tmax, const float sigma)
+  : size(size), color(color), tmin(tmin), tmax(tmax), sigma(sigma), blur(new Gaussian(size, sigma))
+{
+  G = new image<pixelf>(size);
+  Gx = new image<pixelf>(size);
+  Gy = new image<pixelf>(size);
+  nms = new image<pixelf>(size);
+}
+
+Canny::~Canny() {
+  delete(G);
+  delete(Gx);
+  delete(Gy);
+  delete(nms);
+  delete(blur);
+}
+
+
+void Canny::edgeDetection(const image<pixelf> * in,
+			  const image<pixelf> * out)
 {
   assert(in->pixel != NULL && out->pixel != NULL);
-
-  const vec2 n = in->size;
-
-  image<pixelf>	 *G = new image<pixelf>(n);
-  image<pixelf>  *Gx = new image<pixelf>(n);
-  image<pixelf>	 *Gy = new image<pixelf>(n);
-  image<pixelf>  *nms = new image<pixelf>(n);
+  //assert(in->size == size && out->size == size);
  
-  gaussian_filter(in->pixel, G->pixel, n, sigma);
+  blur->filter(in->pixel, G->pixel);
 
-  const pixelf GMx[] = {-1, 0, 1,
-		       -2, 0, 2,
-		       -1, 0, 1};
+  convolution(G->pixel, Gx->pixel, GMx, 3, size);
   
-  convolution(G->pixel, Gx->pixel, GMx, 3, n);
+  convolution(G->pixel, Gy->pixel, GMy, 3, size);
   
-  const pixelf GMy[] = { 1, 2, 1,
-			0, 0, 0,
-			-1,-2,-1};
-  
-  convolution(G->pixel, Gy->pixel, GMy, 3, n);
-  
-  for (int x = 1; x < n.x - 1; x++) {
-    for (int y = 1; y < n.y - 1; y++) {
-      const int c = y * n.x + x;
+  for (int x = 1; x < size.x - 1; x++) {
+    for (int y = 1; y < size.y - 1; y++) {
+      const int c = y * size.x + x;
       G->pixel[c].set((float)(hypot(Gx->pixel[c].get(), Gy->pixel[c].get())));
       //G->pixel[c].set(ABS(after_Gx->pixel[c].get() + after_Gy->pixel[c].get()));
     }
   }
 
   // Non-maximum suppression, straightforward implementation.
-  for (int x = 1; x < n.x - 1; x++) {
-    for (int y = 1; y < n.y - 1; y++) {
-      const int c = n.x * y + x;
-      const int nn = c - n.x;
-      const int ss = c + n.x;
+  for (int x = 1; x < size.x - 1; x++) {
+    for (int y = 1; y < size.y - 1; y++) {
+      const int c = size.x * y + x;
+      const int nn = c - size.x;
+      const int ss = c + size.x;
       const int ww = c + 1;
       const int ee = c - 1;
       const int nw = nn + 1;
@@ -92,12 +94,12 @@ void canny_edge_detection(const image<pixelf> * in,
   // Reuse array
   int *edges = (int*) Gx->pixel; // realloc --
   //memset(out->pixel, 0, sizeof(pixelf) * n.x * n.y);
-  memset(edges, 0, sizeof(pixelf) * n.x * n.y);
+  memset(edges, 0, sizeof(pixelf) * size.x * size.y);
 
   // Tracing edges with hysteresis . Non-recursive implementation.
   size_t c = 1;
-  for (int y = 1; y < n.y - 1; y++) {
-    for (int x = 1; x < n.x - 1; x++) {
+  for (int y = 1; y < size.y - 1; y++) {
+    for (int x = 1; x < size.x - 1; x++) {
       if (nms->pixel[c] >= tmax && out->pixel[c] == 0.0) { // trace edges
 	out->pixel[c].set(color);
 	int nedges = 1;
@@ -107,8 +109,8 @@ void canny_edge_detection(const image<pixelf> * in,
 	  const int t = edges[nedges];
 
 	  int nbs[8]; // neighbours
-	  nbs[0] = t - n.x;     // nn
-	  nbs[1] = t + n.x;     // ss
+	  nbs[0] = t - size.x;     // nn
+	  nbs[1] = t + size.x;     // ss
 	  nbs[2] = t + 1;      // ww
 	  nbs[3] = t - 1;      // ee
 	  nbs[4] = nbs[0] + 1; // nw
@@ -128,13 +130,41 @@ void canny_edge_detection(const image<pixelf> * in,
       
       c++;
     }
-  }  
-  
-  /*  delete(G);
-  delete(after_Gx);
-  delete(after_Gy);
+  }
+}
 
-  delete(nms);
-  delete(out);
-  delete(in);*/
+
+void Canny::setMax(float max) {
+  tmax = max;
+}
+
+void Canny::setMin(float min) {
+  tmin = min;
+}
+
+void Canny::setBlur(float s) {
+  sigma = s;
+  delete(blur);
+  blur = new Gaussian(size, sigma);
+}
+
+void Canny::setColor(pixelf c) {
+  color = c;
+}
+
+
+float	Canny::getMax() {
+  return tmax;
+}
+
+float	Canny::getMin() {
+  return tmin;
+}
+
+float	Canny::getBlur() {
+  return sigma;
+}
+
+pixelf	Canny::getColor() {
+  return color;
 }

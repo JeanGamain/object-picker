@@ -12,8 +12,8 @@ set(EXECUTABLE_OUTPUT_PATH ../bin/)
 
 set(${PROJECT_NAME}_src
 	./src/main.cpp
-	./src/gaussian.cpp
-	./src/canny.cpp
+	./src/Gaussian.cpp
+	./src/Canny.cpp
 	./src/convolution.cpp
 	)
 

@@ -58,6 +58,10 @@ public:
     return *this;
   }
 
+  image &	clear() {
+    memset(pixel, 0, sizeof(T) * size.x * size.y);
+  }
+  
   image &	blend(const image & , float) {
     const char normcolor;
     

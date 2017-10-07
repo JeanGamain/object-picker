@@ -2,7 +2,7 @@
 # define CONVOLUTION_HPP_
 
 #include "vec2.hpp"
-#include "canny.hpp"
+#include "Canny.hpp"
 #include "pixelf.hpp"
 
 void convolution(const pixelf *in, pixelf *out,

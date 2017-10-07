@@ -15,7 +15,7 @@
 
 #include "image.hpp"
 #include "pixel16.hpp"
-#include "canny.hpp"
+#include "Canny.hpp"
 
 #define WIDTH 520
 #define HEIGHT 380
@@ -23,7 +23,10 @@
 #define VIDEOWIDTH 520
 #define VIDEOHEIGHT 380
 
-float diff = 0;
+float diffa = 0;
+float diffb = 0;
+float diffc = 0;
+
 int pause = 0;
 
 struct ctx
@@ -53,7 +56,7 @@ char pixelDiff(uint16_t a, uint16_t b) {
   return (((float)(abs((a & 0x001f) - (b & 0x001f)) +
 	  abs((a & 0x07e0 >> 5) - (b & 0x07e0 >> 5)) +
 	   abs((a & 0xf800 >> 11) - (b & 0xf800 >> 11))) / 3 / 32)
-	  > diff);
+	  > 0.04);
 
 }
 
@@ -102,13 +105,19 @@ static void objectDetectionOverlay(void *const *pixelsbuffer) {
 static void unlock(void *data, void *, void *const *p_pixels)
 {
   struct ctx *ctx = static_cast<struct ctx *>(data);
-
+  static float lastDiffa = diffa;
+  static float lastDiffb = diffb;
+  static float lastDiffc = diffc;
+  static Canny * cannyy = new Canny(vec2(VIDEOWIDTH, VIDEOHEIGHT), 255, 37, 100, 1.84f);
+  
   /* VLC just rendered the video, but we can also render stuff */
   image<pixel16> * img = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT, static_cast<pixel16 *>(*p_pixels));
     //image<pixel16> * img2 = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT);
 
-  image<pixelf> *in = new image<pixelf>(img->size);
-  image<pixelf> *out = new image<pixelf>(img->size);
+  static image<pixelf> *in = new image<pixelf>(img->size);
+  static image<pixelf> *out = new image<pixelf>(img->size);
+
+  out->clear();
   
   for (int x = 0; x < in->size.x; x++) {
     for (int y = 0; y < in->size.y; y++) {
@@ -116,8 +125,22 @@ static void unlock(void *data, void *, void *const *p_pixels)
     }
   }
 
-  canny_edge_detection(in, out, 255, 29, 56, 1.84f + diff);
+  if (lastDiffa != diffa) {
+    cannyy->setMin(37 + diffa);
+    lastDiffa = diffa;
+  }
+  
+  if (lastDiffb != diffb) {
+    cannyy->setMax(100 + diffb);
+    lastDiffb = diffb;
+  }
+  
+  if (lastDiffc != diffc) {
+    cannyy->setBlur(1.84f + diffc);
+    lastDiffc = diffc;
+  }
 
+  cannyy->edgeDetection(in, out);
   for (int x = 0; x < img->size.x; x++) {
     for (int y = 0; y < img->size.y; y++) {
       if (out->pixel[y * img->size.x + x].get() == 255.0)
@@ -237,14 +260,34 @@ int main(int argc, char *argv[])
 	      libvlc_media_player_set_pause(mp, pause);
 	      break;
 	    case SDLK_o:
-	      if (diff + 0.001 < 50)
-		diff += 0.001;
-	      printf("diff+ at %f\n", diff);
+	      if (diffa + 1 < 50)
+		diffa += 1;
+	      printf("diffa+ at %f\n", diffa);
 	      break;
 	    case SDLK_p:
-	      if (diff - 0.001 > -2)
-		diff -= 0.001;
-	      printf("diff- at %f\n", diff);	      
+	      if (diffa - 1 > -20)
+		diffa -= 1;
+	      printf("diffa- at %f\n", diffa);	      
+	      break;
+	    case SDLK_j:
+	      if (diffb + 1 < 50)
+		diffb += 1;
+	      printf("diffb+ at %f\n", diffb);
+	      break;
+	    case SDLK_k:
+	      if (diffb - 1 > -20)
+		diffb -= 1;
+	      printf("diffb- at %f\n", diffb);	      
+	      break;
+	    case SDLK_b:
+	      if (diffc + 0.01 < 50)
+		diffc += 0.01;
+	      printf("diffc+ at %f\n", diffc);
+	      break;
+	    case SDLK_n:
+	      if (diffc - 0.01 > -20)
+		diffc -= 0.01;
+	      printf("diffc- at %f\n", diffc);
 	      break;
 	    }
 

@@ -162,6 +162,11 @@ struct vec2
 		return{ -x, -y };
 	}
 
+	bool 		operator==(const vec2 & b)
+	{
+	  return (x == b.x && y == b.y);
+	}
+  
 	inline cordinate & operator[](unsigned int i)
 	{
 		return reinterpret_cast<cordinate *>(this)[i];
