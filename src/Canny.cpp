@@ -22,13 +22,24 @@
  */
 
 Canny::Canny(vec2 const & size, const pixelf color, const float tmin,
-	     const float tmax, const float sigma)
-  : size(size), color(color), tmin(tmin), tmax(tmax), sigma(sigma), blur(new Gaussian(size, sigma))
+	     const float tmax, const float sigma, const float rsize)
+  : truesize(size),
+    size(vec2(cordinate(size.x * ((rsize > 0.0f) ? rsize : 1)), cordinate(size.y * ((rsize > 0.0f) ? rsize : 1)))),
+    color(color),
+    tmin(tmin),
+    tmax(tmax),
+    sigma(sigma),
+    resize(rsize),
+    blur((sigma > 0) ? new Gaussian(size, sigma) : NULL)
 {
   G = new image<pixelf>(size);
   Gx = new image<pixelf>(size);
   Gy = new image<pixelf>(size);
   nms = new image<pixelf>(size);
+  G->clear();
+  Gx->clear();
+  Gy->clear();
+  nms->clear();
 }
 
 Canny::~Canny() {
@@ -40,17 +51,37 @@ Canny::~Canny() {
 }
 
 
-void Canny::edgeDetection(const image<pixelf> * in,
-			  const image<pixelf> * out)
+void Canny::edgeDetection(image<pixelf> * in,
+			  image<pixelf> * out)
 {
   assert(in->pixel != NULL && out->pixel != NULL);
-  //assert(in->size == size && out->size == size);
- 
-  blur->filter(in->pixel, G->pixel);
+  //assert(truesize == in->size && truesize == out->size);
 
-  convolution(G->pixel, Gx->pixel, GMx, 3, size);
+  image<pixelf> * newin = in;
+    
+  if (resize > 0) {
+    in->resize(newin, resize, resize);
+    newin = G;
+  }
   
-  convolution(G->pixel, Gy->pixel, GMy, 3, size);
+  if (blur != NULL) {
+    memcpy(nms->pixel, newin->pixel, size.x * size.y * sizeof(pixelf));
+    //memset(nms->pixel, 1, sizeof(pixelf) * size.x * size.y);
+    blur->filter(newin->pixel, nms->pixel);
+    newin = nms;
+  }
+  
+  /*
+  for (int x = 0; x < newin->size.x; x++) {
+    for (int y = 0; y < newin->size.y; y++) {
+      out->pixel[y * out->size.x + x] = newin->pixel[y * newin->size.x + x];
+    }
+  }
+  return ;
+  */
+  convolution(newin->pixel, Gx->pixel, GMx, 3, size);
+  
+  convolution(newin->pixel, Gy->pixel, GMy, 3, size);
   
   for (int x = 1; x < size.x - 1; x++) {
     for (int y = 1; y < size.y - 1; y++) {
@@ -59,75 +90,67 @@ void Canny::edgeDetection(const image<pixelf> * in,
       //G->pixel[c].set(ABS(after_Gx->pixel[c].get() + after_Gy->pixel[c].get()));
     }
   }
-
+  
   // Non-maximum suppression, straightforward implementation.
-  for (int x = 1; x < size.x - 1; x++) {
-    for (int y = 1; y < size.y - 1; y++) {
-      const int c = size.x * y + x;
-      const int nn = c - size.x;
-      const int ss = c + size.x;
-      const int ww = c + 1;
-      const int ee = c - 1;
-      const int nw = nn + 1;
-      const int ne = nn - 1;
-      const int sw = ss + 1;
-      const int se = ss - 1;
+  vec2 p;
+  for (p.x = 1; p.x < size.x - 1; p.x++) {
+    for (p.y = 1; p.y < size.y - 1; p.y++) {
+      const int c = size.x * p.y + p.x;
 
-      const float dir = (float)(fmod(atan2(Gy->pixel[c].get(),
+      const float eDir = (float)(fmod(atan2(Gy->pixel[c].get(),
 					   Gx->pixel[c].get()) + M_PI,
-				     M_PI) / M_PI) * 8;
+				     M_PI) / M_PI) * 8;      
+      if (
+	  ((eDir <= 1 || eDir > 7)
+	   && G->pixel[c] > G->pixel[(p + dir[D::W]).to1D(size.x)]
+	   && G->pixel[c] > G->pixel[(p + dir[D::E]).to1D(size.x)]) || // 0 deg
 
-      if (((dir <= 1 || dir > 7) && G->pixel[c] > G->pixel[ee] &&
-	   G->pixel[c] > G->pixel[ww]) || // 0 deg
-	  ((dir > 1 && dir <= 3) && G->pixel[c] > G->pixel[nw] &&
-	   G->pixel[c] > G->pixel[se]) || // 45 deg
-	  ((dir > 3 && dir <= 5) && G->pixel[c] > G->pixel[nn] &&
-	   G->pixel[c] > G->pixel[ss]) || // 90 deg
-	  ((dir > 5 && dir <= 7) && G->pixel[c] > G->pixel[ne] &&
-	   G->pixel[c] > G->pixel[sw]))   // 135 deg
+	  ((eDir > 1 && eDir <= 3)
+	   && G->pixel[c] > G->pixel[(p + dir[D::NE]).to1D(size.x)]
+	   && G->pixel[c] > G->pixel[(p + dir[D::SW]).to1D(size.x)]) || // 45 deg
+	  
+	  ((eDir > 3 && eDir <= 5)
+	   && G->pixel[c] > G->pixel[(p + dir[D::N]).to1D(size.x)]
+	   && G->pixel[c] > G->pixel[(p + dir[D::S]).to1D(size.x)]) || // 90 deg
+	  
+	  ((eDir > 5 && eDir <= 7)
+	   && G->pixel[c] > G->pixel[(p + dir[D::NW]).to1D(size.x)]
+	   && G->pixel[c] > G->pixel[(p + dir[D::SE]).to1D(size.x)]) // 135 deg
+	  )
 	nms->pixel[c] = G->pixel[c];
       else
 	nms->pixel[c] = 0;
     }
   }
-  
+
   // Reuse array
-  int *edges = (int*) Gx->pixel; // realloc --
+  vec2 *edges = (vec2*) Gx->pixel; // realloc --
   //memset(out->pixel, 0, sizeof(pixelf) * n.x * n.y);
   memset(edges, 0, sizeof(pixelf) * size.x * size.y);
-
   // Tracing edges with hysteresis . Non-recursive implementation.
   size_t c = 1;
-  for (int y = 1; y < size.y - 1; y++) {
-    for (int x = 1; x < size.x - 1; x++) {
+  int pos1d;
+  vec2 newpos;
+  for (p.y = 1; p.y < size.y - 1; p.y++) {
+    for (p.x = 1; p.x < size.x - 1; p.x++) {
       if (nms->pixel[c] >= tmax && out->pixel[c] == 0.0) { // trace edges
 	out->pixel[c].set(color);
 	int nedges = 1;
-	edges[0] = c;
+	edges[0] = p;
 	do {
 	  nedges--;
-	  const int t = edges[nedges];
-
-	  int nbs[8]; // neighbours
-	  nbs[0] = t - size.x;     // nn
-	  nbs[1] = t + size.x;     // ss
-	  nbs[2] = t + 1;      // ww
-	  nbs[3] = t - 1;      // ee
-	  nbs[4] = nbs[0] + 1; // nw
-	  nbs[5] = nbs[0] - 1; // ne
-	  nbs[6] = nbs[1] + 1; // sw
-	  nbs[7] = nbs[1] - 1; // se
-
 	  for (int k = 0; k < 8; k++) {
-	    if (nms->pixel[nbs[k]] >= tmin && out->pixel[nbs[k]] == 0.0) {
-	      out->pixel[nbs[k]].set(color);
-	      edges[nedges] = nbs[k];
+	    if ((newpos = edges[nedges] + dir[k]) > size || newpos < vec2(0, 0))
+	      continue;
+	    pos1d = (newpos).to1D(size.x);
+	    if (nms->pixel[pos1d] >= tmin && out->pixel[pos1d] == 0.0) {
+	      out->pixel[pos1d].set(color);
+	      edges[nedges] = newpos;
 	      nedges++;
 	    }
 	  }
 	} while (nedges > 0);
       }
-      
       c++;
     }
   }
@@ -144,8 +167,25 @@ void Canny::setMin(float min) {
 
 void Canny::setBlur(float s) {
   sigma = s;
-  delete(blur);
-  blur = new Gaussian(size, sigma);
+  if (blur != NULL)
+    delete(blur);
+  blur = NULL;
+  if (s > 0) {
+    blur = new Gaussian(size, sigma);
+  }
+}
+
+void Canny::setResize(float r) {
+  if (r <= 0) {
+    size = truesize;
+  } else {
+    size = vec2(cordinate(r * truesize.x), cordinate(r * truesize.y));
+  }
+  G->setSize(size);
+  Gx->setSize(size);
+  Gy->setSize(size);
+  nms->setSize(size);
+  resize = r;
 }
 
 void Canny::setColor(pixelf c) {
@@ -163,6 +203,10 @@ float	Canny::getMin() {
 
 float	Canny::getBlur() {
   return sigma;
+}
+
+float	Canny::getResize() {
+  return resize;
 }
 
 pixelf	Canny::getColor() {
