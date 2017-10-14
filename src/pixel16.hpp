@@ -168,9 +168,9 @@ public:
     */
     return (npixel)(
 		    (
-		     float(this->pixel & 0x1f) / 0x1f +
-		     float(this->pixel & 0x07e0 >> 5) / 0x3f +
-		     float(this->pixel & 0xf800 >> 11) / 0x1f
+		     double(this->pixel & 0x1f) / 0x1f +
+		     double(this->pixel >> 5 & 0x3f) / 0x3f +
+		     double(this->pixel >> 11 & 0x1f) / 0x1f
 		     ) / 3 * 255);
   }
 
@@ -179,11 +179,11 @@ public:
   }
 
   npixel getGnorm() const {
-    return (npixel)(float(this->pixel & 0x07e0 >> 5) / 0x3f * 255);
+    return (npixel)(float(this->pixel >> 5 & 0x3f) / 0x3f * 255);
   }
 
   npixel getBnorm() const {
-    return (npixel)(float(this->pixel & 0xf800 >> 11) / 0x1f * 255);
+    return (npixel)(float(this->pixel >> 11 & 0x1f) / 0x1f * 255);
   }
 
   
@@ -192,11 +192,11 @@ public:
   }
   
   char getv() const {
-    return static_cast<char>(this->pixel & 0x03e0 >> 5);
+    return static_cast<char>(this->pixel >> 5 & 0x3f);
   }
   
   char getb() const {
-    return static_cast<char>(this->pixel & 0xf800 >> 11);
+    return static_cast<char>(this->pixel >> 11 & 0x1f);
   }
 
   void clrr() {
