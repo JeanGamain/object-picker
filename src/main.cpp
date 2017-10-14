@@ -7,7 +7,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <time.h>
+#include <sys/time.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mutex.h>
@@ -106,21 +106,26 @@ static void objectDetectionOverlay(void *const *pixelsbuffer) {
 
 void showfps()
 {
-  static unsigned int lasttime = 0;
+  static double lasttime = 0;
   static unsigned int nbframe = 0;
-  unsigned int curtime;
-  unsigned int fps;
-  static unsigned int maxfps = 0;
+  static double maxfps = 0;
+  struct timeval tv;
+  double curtime;
+  double fps;
 
-  curtime = (unsigned)time(NULL);
-  if ((fps = curtime - lasttime) > 0)
+  gettimeofday(&tv, NULL);
+  curtime = double(tv.tv_sec) + double(tv.tv_usec) / 1000000;
+  if (lasttime == 0) {
+    lasttime = curtime;
+  }
+  if ((fps = curtime - lasttime) > 1)
     {
       fps = nbframe / fps;
       if (maxfps < fps)
 	maxfps = fps;
       lasttime = curtime;
       nbframe = 0;
-      printf("%d fps - %d max\n", fps, maxfps);
+      printf("%.01f fps - %.01f max\n", fps, maxfps);
     }
   else
     nbframe++;
@@ -133,7 +138,7 @@ static void unlock(void *data, void *, void *const *p_pixels)
   static float lastDiffb = diffb;
   static float lastDiffc = diffc;
   static float lastDiffd = diffd;
-  static Canny * cannyy = new Canny(vec2(VIDEOWIDTH, VIDEOHEIGHT), 255, 37, 100, 1.7f, 0.0f);
+  static Canny * cannyy = new Canny(vec2(VIDEOWIDTH, VIDEOHEIGHT), 255, 52, 3, 0.7f, 0.0f);
   
   /* VLC just rendered the video, but we can also render stuff */
   image<pixel16> * img = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT, static_cast<pixel16 *>(*p_pixels));
@@ -151,31 +156,31 @@ static void unlock(void *data, void *, void *const *p_pixels)
   }
 
   if (lastDiffa != diffa) {
-    cannyy->setMin(37 + diffa);
+    cannyy->setMin(52 + diffa);
     lastDiffa = diffa;
   }
   
   if (lastDiffb != diffb) {
-    cannyy->setMax(100 + diffb);
+    cannyy->setMax(3 + diffb);
     lastDiffb = diffb;
   }
   
   if (lastDiffc != diffc) {
-    cannyy->setBlur(1.7f + diffc);
+    cannyy->setBlur(0.7f + diffc);
     lastDiffc = diffc;
   }
 
   if (lastDiffd != diffd) {
-    cannyy->setResize(0.7f + diffd);
+    cannyy->setResize(0.0f + diffd);
     lastDiffd = diffd;
   }
 
   cannyy->edgeDetection(in, out);
   for (int x = 0; x < img->size.x; x++) {
     for (int y = 0; y < img->size.y; y++) {
-      //img->pixel[y * img->size.x + x].set(out->pixel[y * img->size.x + x].get());
-      if (out->pixel[y * img->size.x + x].get() == 255)
-	img->pixel[y * img->size.x + x].setrvb(255, 0, 0);
+      img->pixel[y * img->size.x + x].set(out->pixel[y * img->size.x + x].get());
+      //if (out->pixel[y * img->size.x + x].get() == 255)
+      //img->pixel[y * img->size.x + x].setrvb(255, 0, 0);
     }
   }
   showfps();
