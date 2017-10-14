@@ -10,30 +10,35 @@
 
 class Canny {
 public:
-  Canny(vec2 const & size, const pixelf color, const float tmin, const float tmax, const float sigma);
+  Canny(vec2 const & size, const pixelf color, const float tmin, const float tmax, const float sigma, const float rsize);
   ~Canny();
   
-  void edgeDetection(const image<pixelf> * in, const image<pixelf> * out); // use generic image type
+  void edgeDetection(image<pixelf> * in, image<pixelf> * out); // use generic image type
 
   void setMax(float max);
   void setMin(float min);
   void setBlur(float s);
+  void setResize(float r);
   void setColor(pixelf color);
-
+  
+  
   float getMax();
   float getMin();
   float getBlur(); // blur interface?
+  float getResize();
   pixelf getColor();
   
 private:
+  vec2		truesize;
   vec2		size;
   pixelf	color;
   float		tmin;
   float		tmax;
   float		sigma;
+  float		resize;
   Gaussian *	blur;
   
-  image<pixelf>	 *G; // & const
+  image<pixelf>	 *G;
   image<pixelf>  *Gx;
   image<pixelf>	 *Gy;
   image<pixelf>  *nms;
@@ -50,6 +55,18 @@ private:
     0, 0, 0,
     -1,-2,-1
   };
+
+  enum   D {
+    NW = 0, N, NE,
+    W, E,
+    SW, S, SE
+  };
+  
+  const vec2   dir[8] = {
+    {-1, -1}, {0, -1}, {1, -1},
+    {-1, 0},           {1, 0},
+    {-1, 1},  {0, 1},  {1, 1}
+    };
 };
 
 #endif /* !CANNY_HPP_ */

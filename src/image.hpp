@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include "math.hpp"
 #include "vec2.hpp"
 
@@ -60,6 +61,7 @@ public:
 
   image &	clear() {
     memset(pixel, 0, sizeof(T) * size.x * size.y);
+    return *this;
   }
   
   image &	blend(const image & , float) {
@@ -74,6 +76,61 @@ public:
   }
 
   void		normalize(){
+  }
+
+  void	resize(image<T> * const b, float resizex, float resizey) const {
+    vec2 s = { cordinate(size.x * resizex), cordinate(size.y * resizey) };
+    double sum;
+    float fymod;
+    float acu;
+    float sqr;
+    
+    assert(b != NULL);
+    assert(b->setSize(resizex, resizey));
+    assert(b->pixel != NULL && pixel != NULL);
+    
+    for (int x = 0; x < s.x; ++x) { 
+      for (int y = 0; y < s.y; ++y) {
+	sum = 0;
+	acu = 0;
+	for (float x2 = x / resizex; x2 < ((x + 1) / resizex); x2 += 0.96f) { // fix 0.96 to 1
+	  fymod = fmod(x2, 1);
+	  for (float y2 = y / resizey; y2 < ((y + 1) / resizey); y2 += 0.96f) {
+	    sqr = fymod * fmod(y2, 1);
+	    sum += this->pixel[int(y2) * size.x + int(x2)].pixel * sqr;
+	    acu += sqr;
+	  }
+	}
+	b->pixel[y * s.x + x] = sum / acu;
+      }
+    }
+    /* DUMMY
+    for (int x = 0; x < size.x && (i.x = int(x * resizex)) < s.x; x++) {
+      for (int y = 0; y < size.y && (i.y = int(y * resizey)) < s.y; y++) {
+	b->pixel[i.y * s.x + i.x] = this->pixel[y * size.x + x];
+      }
+      }*/
+    b->size = s;
+  }
+
+  
+  bool	setSize(float s) {
+    assert(s > 0);
+    return setSize(vec2(cordinate(size.x * s), cordinate(size.y * s)));
+  }
+
+  bool	setSize(float x, float y) {
+    assert(x > 0 && y > 0);
+    return setSize(vec2(cordinate(size.x * x), cordinate(size.y * y)));
+  }
+
+  bool setSize(vec2 size) {
+    assert(size.x > 0 && size.y > 0);
+    void * n = realloc(pixel, sizeof(T) * size.x * size.y);
+    if (n == NULL)
+      return false;
+    pixel = (T*)n;
+    return true;
   }
   
 };

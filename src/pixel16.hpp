@@ -213,9 +213,9 @@ public:
   
   void setrvb(char r, char v, char b) {
     pixel = 0;
-    pixel |= r & 0x001f;
-    pixel |= v & 0x001f << 5;
-    pixel |= b & 0x001f << 11;
+    pixel |= r & 0x1f;
+    pixel |= v & 0x3f << 5;
+    pixel |= b & 0x1f << 11;
   }
 
   void setrvb(char *p) {

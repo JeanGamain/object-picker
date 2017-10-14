@@ -76,9 +76,24 @@ public:
     return (this->pixel >= b.pixel);
   }
   
+  inline void		operator+=(pixelf const & b)
+  {
+    this->pixel += b.pixel;
+  }
+  
+  inline void		operator/=(pixelf const & b)
+  {
+    this->pixel /= b.pixel;
+  }
+  
   inline float		operator*(pixelf const & b)
   {
     return this->pixel * b.pixel;
+  }
+
+  inline float		operator/(pixelf const & b)
+  {
+    return this->pixel / b.pixel;
   }
 
 

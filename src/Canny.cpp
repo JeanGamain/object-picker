@@ -93,6 +93,8 @@ void Canny::edgeDetection(image<pixelf> * in,
   
   // Non-maximum suppression, straightforward implementation.
   vec2 p;
+  int nord;
+  int sud;
   for (p.x = 1; p.x < size.x - 1; p.x++) {
     for (p.y = 1; p.y < size.y - 1; p.y++) {
       const int c = size.x * p.y + p.x;
@@ -100,22 +102,24 @@ void Canny::edgeDetection(image<pixelf> * in,
       const float eDir = (float)(fmod(atan2(Gy->pixel[c].get(),
 					   Gx->pixel[c].get()) + M_PI,
 				     M_PI) / M_PI) * 8;      
-      if (
-	  ((eDir <= 1 || eDir > 7)
-	   && G->pixel[c] > G->pixel[(p + dir[D::W]).to1D(size.x)]
-	   && G->pixel[c] > G->pixel[(p + dir[D::E]).to1D(size.x)]) || // 0 deg
+      nord = c - size.x;
+      sud = c + size.x;
+      if (	  
+	  ((eDir > 3 && eDir <= 5)			// 90°
+	   && G->pixel[c] > G->pixel[nord]		// N
+	   && G->pixel[c] > G->pixel[sud]) ||		// S
+	  
+	  ((eDir <= 1 || eDir > 7)			// 0°
+	   && G->pixel[c] > G->pixel[c - 1]		// W
+	   && G->pixel[c] > G->pixel[c + 1]) ||		// E
 
-	  ((eDir > 1 && eDir <= 3)
-	   && G->pixel[c] > G->pixel[(p + dir[D::NE]).to1D(size.x)]
-	   && G->pixel[c] > G->pixel[(p + dir[D::SW]).to1D(size.x)]) || // 45 deg
-	  
-	  ((eDir > 3 && eDir <= 5)
-	   && G->pixel[c] > G->pixel[(p + dir[D::N]).to1D(size.x)]
-	   && G->pixel[c] > G->pixel[(p + dir[D::S]).to1D(size.x)]) || // 90 deg
-	  
-	  ((eDir > 5 && eDir <= 7)
-	   && G->pixel[c] > G->pixel[(p + dir[D::NW]).to1D(size.x)]
-	   && G->pixel[c] > G->pixel[(p + dir[D::SE]).to1D(size.x)]) // 135 deg
+	  ((eDir > 1 && eDir <= 3)			// 45°
+	   && G->pixel[c] > G->pixel[nord + 1]		// NE
+	   && G->pixel[c] > G->pixel[sud - 1]) ||	// SW
+
+	  ((eDir > 5 && eDir <= 7)			// 135°
+	   && G->pixel[c] > G->pixel[nord - 1]		// NW
+	   && G->pixel[c] > G->pixel[sud + 1])		// SE
 	  )
 	nms->pixel[c] = G->pixel[c];
       else
@@ -125,8 +129,17 @@ void Canny::edgeDetection(image<pixelf> * in,
 
   // Reuse array
   vec2 *edges = (vec2*) Gx->pixel; // realloc --
-  //memset(out->pixel, 0, sizeof(pixelf) * n.x * n.y);
-  memset(edges, 0, sizeof(pixelf) * size.x * size.y);
+  memset(out->pixel, 0, sizeof(pixelf) * size.x * size.y);
+  int sx = size.x - 1;
+  for (int x = 1; x < size.x; ++x) {
+      out->pixel[x] = 255.0f;
+      out->pixel[(size.y - 1) * size.x + x] = 255.0f;
+  }
+  for (int y = 1; y < size.y - 1; ++y) {
+      out->pixel[y * size.x] = 255.0f;
+      out->pixel[y * size.x + sx] = 255.0f;
+  }
+
   // Tracing edges with hysteresis . Non-recursive implementation.
   size_t c = 1;
   int pos1d;
@@ -140,8 +153,6 @@ void Canny::edgeDetection(image<pixelf> * in,
 	do {
 	  nedges--;
 	  for (int k = 0; k < 8; k++) {
-	    if ((newpos = edges[nedges] + dir[k]) > size || newpos < vec2(0, 0))
-	      continue;
 	    pos1d = (newpos).to1D(size.x);
 	    if (nms->pixel[pos1d] >= tmin && out->pixel[pos1d] == 0.0) {
 	      out->pixel[pos1d].set(color);

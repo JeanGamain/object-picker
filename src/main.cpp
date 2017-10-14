@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mutex.h>
@@ -17,15 +18,16 @@
 #include "pixel16.hpp"
 #include "Canny.hpp"
 
-#define WIDTH 520
-#define HEIGHT 380
+#define WIDTH 512
+#define HEIGHT 377
 
-#define VIDEOWIDTH 520
-#define VIDEOHEIGHT 380
+#define VIDEOWIDTH 512
+#define VIDEOHEIGHT 377
 
 float diffa = 0;
 float diffb = 0;
 float diffc = 0;
+float diffd = 0;
 
 int pause = 0;
 
@@ -102,13 +104,36 @@ static void objectDetectionOverlay(void *const *pixelsbuffer) {
   }
 }
 
+void showfps()
+{
+  static unsigned int lasttime = 0;
+  static unsigned int nbframe = 0;
+  unsigned int curtime;
+  unsigned int fps;
+  static unsigned int maxfps = 0;
+
+  curtime = (unsigned)time(NULL);
+  if ((fps = curtime - lasttime) > 0)
+    {
+      fps = nbframe / fps;
+      if (maxfps < fps)
+	maxfps = fps;
+      lasttime = curtime;
+      nbframe = 0;
+      printf("%d fps - %d max\n", fps, maxfps);
+    }
+  else
+    nbframe++;
+}
+
 static void unlock(void *data, void *, void *const *p_pixels)
 {
   struct ctx *ctx = static_cast<struct ctx *>(data);
   static float lastDiffa = diffa;
   static float lastDiffb = diffb;
   static float lastDiffc = diffc;
-  static Canny * cannyy = new Canny(vec2(VIDEOWIDTH, VIDEOHEIGHT), 255, 37, 100, 1.84f);
+  static float lastDiffd = diffd;
+  static Canny * cannyy = new Canny(vec2(VIDEOWIDTH, VIDEOHEIGHT), 255, 37, 100, 1.7f, 0.0f);
   
   /* VLC just rendered the video, but we can also render stuff */
   image<pixel16> * img = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT, static_cast<pixel16 *>(*p_pixels));
@@ -136,19 +161,24 @@ static void unlock(void *data, void *, void *const *p_pixels)
   }
   
   if (lastDiffc != diffc) {
-    cannyy->setBlur(1.84f + diffc);
+    cannyy->setBlur(1.7f + diffc);
     lastDiffc = diffc;
+  }
+
+  if (lastDiffd != diffd) {
+    cannyy->setResize(0.7f + diffd);
+    lastDiffd = diffd;
   }
 
   cannyy->edgeDetection(in, out);
   for (int x = 0; x < img->size.x; x++) {
     for (int y = 0; y < img->size.y; y++) {
-      if (out->pixel[y * img->size.x + x].get() == 255.0)
-	img->pixel[y * img->size.x + x].set(255.0f);
+      //img->pixel[y * img->size.x + x].set(out->pixel[y * img->size.x + x].get());
+      if (out->pixel[y * img->size.x + x].get() == 255)
+	img->pixel[y * img->size.x + x].setrvb(255, 0, 0);
     }
   }
-
-  printf("rdr\n");
+  showfps();
   SDL_UnlockSurface(ctx->surf);
   SDL_UnlockMutex(ctx->mutex);
 }
@@ -260,34 +290,44 @@ int main(int argc, char *argv[])
 	      libvlc_media_player_set_pause(mp, pause);
 	      break;
 	    case SDLK_o:
-	      if (diffa + 1 < 50)
+	      if (diffa + 1 < 250)
 		diffa += 1;
 	      printf("diffa+ at %f\n", diffa);
 	      break;
 	    case SDLK_p:
-	      if (diffa - 1 > -20)
+	      if (diffa - 1 > -200)
 		diffa -= 1;
 	      printf("diffa- at %f\n", diffa);	      
 	      break;
 	    case SDLK_j:
-	      if (diffb + 1 < 50)
+	      if (diffb + 1 < 250)
 		diffb += 1;
 	      printf("diffb+ at %f\n", diffb);
 	      break;
 	    case SDLK_k:
-	      if (diffb - 1 > -20)
+	      if (diffb - 1 > -200)
 		diffb -= 1;
 	      printf("diffb- at %f\n", diffb);	      
 	      break;
 	    case SDLK_b:
-	      if (diffc + 0.01 < 50)
+	      if (diffc + 0.01 < 250)
 		diffc += 0.01;
 	      printf("diffc+ at %f\n", diffc);
 	      break;
 	    case SDLK_n:
-	      if (diffc - 0.01 > -20)
+	      if (diffc - 0.01 > -200)
 		diffc -= 0.01;
 	      printf("diffc- at %f\n", diffc);
+	      break;
+	    case SDLK_q:
+	      if (diffd + 0.01 < 2)
+		diffd += 0.01;
+	      printf("diffd+ at %f\n", diffd);
+	      break;
+	    case SDLK_s:
+	      if (diffd - 0.01 > 0)
+		diffd -= 0.01;
+	      printf("diffd- at %f\n", diffd);
 	      break;
 	    }
 
