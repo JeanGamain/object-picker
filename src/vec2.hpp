@@ -156,19 +156,23 @@ struct vec2
     return *this;
   }
 
-  bool		operator<(const vec2 b) {
+  bool		operator<(const vec2 b) const
+  {
     return (x < b.x && y < b.y);
   }
   
-  bool		operator>(const vec2 b) {
+  bool		operator>(const vec2 b) const
+  {
     return (x > b.x && y > b.y);
   }
   
-  bool		operator<=(const vec2 b) {
+  bool		operator<=(const vec2 b) const
+  {
     return (x <= b.x && y <= b.y);
   }
   
-  bool		operator>=(const vec2 b) {
+  bool		operator>=(const vec2 b) const
+  {
     return (x >= b.x && y >= b.y);
   }
   
@@ -177,9 +181,14 @@ struct vec2
     return{ -x, -y };
   }
 
-  bool 		operator==(const vec2 & b)
+  bool 		operator==(const vec2 & b) const
   {
     return (x == b.x && y == b.y);
+  }
+
+  bool 		operator!=(const vec2 & b) const
+  {
+    return (x != b.x || y != b.y);
   }
   
   inline cordinate & operator[](unsigned int i)
@@ -198,7 +207,7 @@ struct vec2
     return { x * b.x + y * b.y };
   }
     
-  cordinate	to1D(int xlen) {
+  cordinate	to1D(int xlen) const {
     return xlen * y + x;
   }
   

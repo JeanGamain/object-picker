@@ -2,6 +2,7 @@
 # define CANNY_HPP_
 
 #include <stdint.h>
+#include <list>
 #include "pixelf.hpp"
 #include "image.hpp"
 #include "math.hpp"
@@ -10,28 +11,40 @@
 
 class Canny {
 public:
-  Canny(vec2 const & size, const pixelf color, const float tmin, const float tmax, const float sigma, const float rsize);
+  typedef struct edge_t{
+    vec2		pos;
+    unsigned int	length;
+    unsigned char	color;		
+    char		loop;
+    std::list<vec2> *	point;
+  }			edge;
+  
+public:
+  Canny(vec2 const & size, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma, const float rsize);
   ~Canny();
   
-  void edgeDetection(image<pixelf> * in, image<pixelf> * out); // use generic image type
+  std::list<edge> * edgeDetection(image<pixelf> * in);
+  // use generic image type
 
   void setMax(float max);
   void setMin(float min);
   void setBlur(float s);
   void setResize(float r);
-  void setColor(pixelf color);
+  void setDump(unsigned int d);
+  void setMinLength(unsigned int l);
   
-  
-  float getMax();
-  float getMin();
-  float getBlur(); // blur interface?
-  float getResize();
-  pixelf getColor();
+  float getMax() const;
+  float getMin() const;
+  float getBlur() const;
+  float getResize() const;
+  unsigned int getDump() const;
+  unsigned int getMinLength() const;
   
 private:
   vec2		truesize;
   vec2		size;
-  pixelf	color;
+  unsigned int	dump;
+  unsigned int	minlength;
   float		tmin;
   float		tmax;
   float		sigma;
