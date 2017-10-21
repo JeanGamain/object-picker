@@ -9,14 +9,15 @@ extern float diffc;
 extern float diffd;
 
 ObjectPicker::ObjectPicker(vec2 size)
-  : size(size),
-    dump(5),
-    minlength(10),
-    tmin(50),
-    tmax(65),
-    sigma(1.0f),
+  : truesize(size),
     resize(0.0f),
-    canny(new Canny(size, dump, minlength, tmin, tmax, sigma, resize)),
+    size((resize > 0.0f) ? size * vec2(resize, resize) : size),
+    dump(1),
+    minlength(1), //10
+    tmin(50),
+    tmax(70),
+    sigma(1.5f),
+    canny(new Canny(size, dump, minlength, tmin, tmax, sigma)),
     inbw(new image<pixelf>(size)),
     lock(0)
 {
@@ -43,7 +44,7 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
   
   if (lasttmin != diffb) {
     lasttmin = diffb;
-    canny->setMin(tmin + lasttmin);
+    canny->setMinLength(minlength + lasttmin);
   }
 
   if (lasttmax != diffc) {
@@ -55,29 +56,30 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
     lastsigma = diffd;
     canny->setBlur(sigma + lastsigma);
   }
-  for (int x = 0; x < img->size.x; x++) {
-    for (int y = 0; y < img->size.y; y++) {
-      inbw->pixel[y * img->size.x + x].set(img->pixel[y * img->size.x + x].get());
-    }
+  
+  #pragma omp for
+  for (int x = 0; x < (img->size.x * img->size.y); x++) {
+      inbw->pixel[x].set(img->pixel[x].get());
   }
+  /*
+  if (resize > 0) {
+    in->resize(newin, resize, resize);
+    newin = G;
+    }*/
   
   std::list<Canny::edge> * edges = canny->edgeDetection(inbw);
   
-  printf("detected edges%d : %lu\n", img->size.x, edges->size());
-  for (std::list<Canny::edge>::const_iterator i = edges->begin();
+  printf("detected edges : %lu\n", edges->size());
+  /*for (std::list<Canny::edge>::const_iterator i = edges->begin();
        i != edges->end();
        ++i) {
-    img->pixel[(*i).pos.y * img->size.x + (*i).pos.x].setrvb(0, 255, 0);
+    img->pixel[(*i).to1D(img->size.x - 1)].setrvb(0, 255, 0);
     for (std::list<vec2>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end();
 	 ++j) {
-      if ((*i).loop) {
-	img->pixel[(*j).to1D(img->size.x)].setrvb(255, 0, 0);
-      } else {
-	img->pixel[(*j).to1D(img->size.x)].setrvb(0, 0, 255);
-      }
+      img->pixel[(*j).to1D(img->size.x - 1)].setrvb(255, 0, 0);
     }
-  }
+    }*/
   
   return 0;
 }
@@ -89,6 +91,20 @@ bool ObjectPicker::setLock(unsigned int l) {
 
 unsigned int ObjectPicker::getLock() const {
   return lock;
+}
+
+float	ObjectPicker::getResize() const {
+  return resize;
+}
+
+void	ObjectPicker::setResize(float r) {
+  if (r <= 0) {
+    size = truesize;
+  } else {
+    size = vec2(cordinate(r * truesize.x), cordinate(r * truesize.y));
+  }
+  // resize canny
+  resize = r;
 }
 
 /*

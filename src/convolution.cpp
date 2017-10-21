@@ -16,18 +16,18 @@ void convolution(const pixelf *in, pixelf *out,
   float p;
   vec2 b;
  
-  vec2 a;
-  for (a.x = khalf; a.x < n.x - khalf; a.x++) {
-    for (a.y = khalf; a.y < n.y - khalf; a.y++) {
+  #pragma omp for
+  for (int x = khalf; x < n.x - khalf; x++) {
+    for (int y = khalf; y < n.y - khalf; y++) {
       p = 0;
       c = 0;
       for (b.y = -khalf; b.y <= khalf; b.y++) {
 	for (b.x = -khalf; b.x <= khalf; b.x++) {
-	  p += in[(a.y - b.y) * n.x + a.x - b.x].get() * kernel[c].get();
+	  p += in[(y - b.y) * n.x + x - b.x].get() * kernel[c].get();
 	  c++;
 	}
       }
-      out[a.y * n.x + a.x].set(p);
+      out[y * n.x + x].set(p);
     }
   }
 }

@@ -18,11 +18,12 @@
 #include "pixel16.hpp"
 #include "ObjectPicker.hpp"
 
-#define WIDTH 512
-#define HEIGHT 377
 
 #define VIDEOWIDTH 512
 #define VIDEOHEIGHT 377
+
+#define WIDTH VIDEOWIDTH + 10
+#define HEIGHT VIDEOHEIGHT + 10
 
 float diffa = 0;
 float diffb = 0;
@@ -103,7 +104,7 @@ int main(int argc, char *argv[])
   libvlc_media_player_t *mp;
       char const *vlc_argv[] =
 	{
-	  "--no-audio", /* skip any audio track */
+	  //"--no-audio", /* skip any audio track */
 	  "--no-xlib", /* tell VLC to not use Xlib */
 	};
       int vlc_argc = sizeof(vlc_argv) / sizeof(*vlc_argv);
@@ -163,7 +164,8 @@ int main(int argc, char *argv[])
        */
       rect.w = 0;
       rect.h = 0;
-
+      rect.x = 5;
+      rect.y = 5;
       while(!done)
 	{
 	  action = 0;
@@ -198,42 +200,42 @@ int main(int argc, char *argv[])
 	    case SDLK_o:
 	      if (diffa + 1 < 250)
 		diffa += 1;
-	      printf("min+ at %f\n", diffa);
+	      printf("a+ at %f\n", diffa);
 	      break;
 	    case SDLK_p:
 	      if (diffa - 1 > -200)
 		diffa -= 1;
-	      printf("min- at %f\n", diffa);	      
+	      printf("a- at %f\n", diffa);	      
 	      break;
 	    case SDLK_j:
 	      if (diffb + 1 < 250)
 		diffb += 1;
-	      printf("max+ at %f\n", diffb);
+	      printf("b+ at %f\n", diffb);
 	      break;
 	    case SDLK_k:
 	      if (diffb - 1 > -200)
 		diffb -= 1;
-	      printf("max- at %f\n", diffb);	      
+	      printf("b- at %f\n", diffb);	      
 	      break;
 	    case SDLK_b:
 	      if (diffc + 0.01 < 250)
 		diffc += 0.01;
-	      printf("blur+ at %f\n", diffc);
+	      printf("c+ at %f\n", diffc);
 	      break;
 	    case SDLK_n:
 	      if (diffc - 0.01 > -200)
 		diffc -= 0.01;
-	      printf("blur- at %f\n", diffc);
+	      printf("c- at %f\n", diffc);
 	      break;
 	    case SDLK_q:
-	      if (diffd + 0.01 < 2)
+	      if (diffd + 0.01 < 40)
 		diffd += 0.01;
-	      printf("resize+ at %f\n", diffd);
+	      printf("d+ at %f\n", diffd);
 	      break;
 	    case SDLK_s:
-	      if (diffd - 0.01 > 0)
+	      if (diffd - 0.01 > -40)
 		diffd -= 0.01;
-	      printf("resize- at %f\n", diffd);
+	      printf("d- at %f\n", diffd);
 	      break;
 	    }
 
@@ -244,9 +246,9 @@ int main(int argc, char *argv[])
 	  SDL_UnlockMutex(ctx.mutex);
 
 	  SDL_Flip(screen);
-	  SDL_Delay(10);
+	  //SDL_Delay(10);
 
-	  SDL_BlitSurface(empty, NULL, screen, &rect);
+	  //SDL_BlitSurface(empty, NULL, screen, &rect);
 	}
 
       /*

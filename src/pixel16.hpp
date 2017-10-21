@@ -141,37 +141,14 @@ public:
   }
 
   npixel get() const {
-    /*int n = this->pixel;
-    int i = 0;
-    if (n > 0) {
-    while (i < 16) {
-      if (n & 1)
-	printf("1");
-      else
-	printf("0");
-
-      n >>= 1;
-      i++;
-    }
-    }
-
-    printf("\n");
-
-
-       return (npixel)(
-		    (
-		     float(this->pixel & 0x1f) / 0x1f * 0.3 +
-		     float(this->pixel & 0x07e0 >> 5) / 0x3f * 0.59 +
-		     float(this->pixel & 0xf800 >> 11) / 0x1f * 0.11
-		     ) * 255);
-
-    */
+    /*
     return (npixel)(
 		    (
 		     double(this->pixel & 0x1f) / 0x1f +
 		     double(this->pixel >> 5 & 0x3f) / 0x3f +
 		     double(this->pixel >> 11 & 0x1f) / 0x1f
-		     ) / 3 * 255);
+		     ) / 3 * 255);*/
+    return (npixel)(double(this->pixel) / 65025 * 255);
   }
 
   npixel getRnorm() const {

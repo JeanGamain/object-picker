@@ -20,7 +20,7 @@ public:
   }			edge;
   
 public:
-  Canny(vec2 const & size, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma, const float rsize);
+  Canny(vec2 const & size, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
   ~Canny();
   
   std::list<edge> * edgeDetection(image<pixelf> * in);
@@ -29,26 +29,22 @@ public:
   void setMax(float max);
   void setMin(float min);
   void setBlur(float s);
-  void setResize(float r);
   void setDump(unsigned int d);
   void setMinLength(unsigned int l);
   
   float getMax() const;
   float getMin() const;
   float getBlur() const;
-  float getResize() const;
   unsigned int getDump() const;
   unsigned int getMinLength() const;
   
 private:
-  vec2		truesize;
   vec2		size;
   unsigned int	dump;
   unsigned int	minlength;
   float		tmin;
   float		tmax;
   float		sigma;
-  float		resize;
   Gaussian *	blur;
   
   image<pixelf>	 *G;
@@ -79,7 +75,7 @@ private:
     {-1, -1}, {0, -1}, {1, -1},
     {-1, 0},           {1, 0},
     {-1, 1},  {0, 1},  {1, 1}
-    };
+  };
 };
 
 #endif /* !CANNY_HPP_ */

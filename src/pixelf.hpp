@@ -51,27 +51,37 @@ public:
     return *this;
   }
   
-  bool			operator>(pixelf const & b)
+  bool			operator>(pixelf const & b) const
   {
     return (this->pixel > b.pixel);
   }
+
+  bool			operator<(pixelf const & b) const
+  {
+    return (this->pixel < b.pixel);
+  }
   
-  bool	 		operator==(pixelf const & b)
+  bool			operator<(float const & b) const
+  {
+    return (this->pixel < b);
+  }
+  
+  bool	 		operator==(pixelf const & b) const
   {
     return (this->pixel == b.pixel);
   }
 
-  bool	 		operator==(float const & b)
+  bool	 		operator==(float const & b) const
   {
     return (this->pixel == b);
   }
   
-  bool			operator>=(float const & b)
+  bool			operator>=(float const & b) const
   {
     return (this->pixel >= b);
   }
 
-  bool			operator>=(pixelf const & b)
+  bool			operator>=(pixelf const & b) const
   {
     return (this->pixel >= b.pixel);
   }
@@ -86,12 +96,12 @@ public:
     this->pixel /= b.pixel;
   }
   
-  inline float		operator*(pixelf const & b)
+  inline float		operator*(pixelf const & b) const
   {
     return this->pixel * b.pixel;
   }
 
-  inline float		operator/(pixelf const & b)
+  inline float		operator/(pixelf const & b) const
   {
     return this->pixel / b.pixel;
   }

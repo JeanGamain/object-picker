@@ -168,12 +168,12 @@ struct vec2
   
   bool		operator<=(const vec2 b) const
   {
-    return (x <= b.x && y <= b.y);
+    return (x <= b.x || y <= b.y);
   }
   
   bool		operator>=(const vec2 b) const
   {
-    return (x >= b.x && y >= b.y);
+    return (x >= b.x || y >= b.y);
   }
   
   vec2		operator-() const
