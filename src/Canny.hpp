@@ -47,10 +47,12 @@ private:
   float		sigma;
   Gaussian *	blur;
   
-  image<pixelf>	 *G;
-  image<pixelf>  *Gx;
-  image<pixelf>	 *Gy;
-  image<pixelf>  *nms;
+  image<pixelf>	* G;
+  image<pixelf> * Gx;
+  image<pixelf>	* Gy;
+  image<pixelf> * nms;
+  image<pixelf> * boundClear;
+  vec2 *	  edges;
   
   const pixelf GMx[9] = {
     -1, 0, 1,

@@ -44,10 +44,27 @@ Canny::Canny(vec2 const & size,
   Gx = new image<pixelf>(size);
   Gy = new image<pixelf>(size);
   nms = new image<pixelf>(size);
+  boundClear = new image<pixelf>(size);
   G->clear();
   Gx->clear();
   Gy->clear();
   nms->clear();
+  boundClear->clear();
+  for (int x = 0; x < size.x; ++x) {
+      boundClear->pixel[x] = 255.0f;
+      boundClear->pixel[(size.y - 1) * size.x + x] = 255.0f;
+      //img->pixel[x].setrvb(0, 255, 0);
+      //img->pixel[(size.y - 1) * size.x + x].setrvb(0, 255, 0);
+  }
+  int sx = size.x - 1;
+  for (int y = 0; y < size.y; ++y) {
+      boundClear->pixel[y * size.x] = 255.0f;
+      boundClear->pixel[y * size.x + sx] = 255.0f;
+      //img->pixel[y * size.x].setrvb(255, 0, 0);
+      //img->pixel[y * size.x + sx].setrvb(0, 0, 255);
+  }
+  // Reuse array
+  edges = (vec2*)Gx->pixel;
 }
 
 Canny::~Canny() {
@@ -74,6 +91,7 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
   
   convolution(newin->pixel, Gx->pixel, GMx, 3, size);
   convolution(newin->pixel, Gy->pixel, GMy, 3, size);
+
   omp_set_dynamic(0);
   omp_set_num_threads(omp_get_num_threads());
   #pragma omp for
@@ -116,25 +134,8 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
     }
   }
 
-  // Reuse array
-  vec2 *edges = (vec2*) Gx->pixel; // realloc --
-  G->clear();
-  int sx = size.x - 1;
-  for (int x = 0; x < size.x; ++x) {
-      G->pixel[x] = 255.0f;
-      G->pixel[(size.y - 1) * size.x + x] = 255.0f;
-      img->pixel[x].setrvb(0, 255, 0);
-      img->pixel[(size.y - 1) * size.x + x].setrvb(0, 255, 0);
-  }
-  for (int y = 0; y < size.y; ++y) {
-      G->pixel[y * size.x] = 255.0f;
-      G->pixel[y * size.x + sx] = 255.0f;
-      img->pixel[y * size.x].setrvb(0, 255, 0);
-      img->pixel[y * size.x + sx].setrvb(0, 255, 0);
-  }
-  //G->pixel[511 + 375 * size.x] = 255.0f;
-
-  // Tracing edges with hysteresis . Non-recursive implementation.
+  memcpy(G->pixel, boundClear->pixel, size.x * size.y * sizeof(pixelf));
+  
   vec2 p;
   size_t c = 1;
   int nedges;
@@ -146,7 +147,7 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
   std::list<edge> * edgeList = new std::list<edge>();
   for (p.y = 1; p.y < size.y - 1; p.y++) {
     for (p.x = 1; p.x < size.x - 1; p.x++) {
-      c = p.to1D(size.x - 1);
+      c = p.to1D(size.x);
       if (nms->pixel[c] >= tmax && G->pixel[c] < 1.0f) { // trace edge
 	nedges = 1;
 	newedge.pos = vec2(cordinate(c), 0);
@@ -154,24 +155,21 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
 	newedge.length = 1;
 	newedge.color = (unsigned int)color;
 	newedge.point = new std::list<vec2>();
-	G->pixel[c].set(1.0); // colo
-	img->pixel[c].setrvb(0, 0, 255);
+	G->pixel[c].set(color); // colo
 	edges[0] = p;
 	do {
 	  nedges--;
 	  newpossave = edges[nedges];
 	  for (int k = 0; k < 8; k++) {
 	    newpos = newpossave + dir[k];
-	    //printf("%d %d\n", newpos.x, newpos.y);
-	    pos1d = (newpos).to1D(size.x - 1);
+	    pos1d = (newpos).to1D(size.x); // what what
 	    if (nms->pixel[pos1d] >= tmin
 		&& G->pixel[pos1d] < 1.0f) {
-	      if (newpos < vec2(1, 1) || newpos >= vec2(size.x - 1, size.y - 1)) {
-		printf("LEL p:%d %d vn: %d %d k: %d c: %f\n", newpossave.x, newpossave.y, newpos.x, newpos.y, newedge.length, G->pixel[pos1d].pixel);
+	      /*if (newpos < vec2(1, 1) || newpos >= vec2(size.x - 1, size.y - 1)) {
+		printf("newpos: %d %d c: %f t: %f\n", newpos.x, newpos.y, G->pixel[pos1d].pixel, G->pixel[newpos.to1D(size.x)].pixel);
 		continue;
-	      }
-	      img->pixel[pos1d].setrvb(255, 0, 0);
-	      G->pixel[pos1d].set(255.0); // color
+		}*/
+	      G->pixel[pos1d].set(color);
 	      edges[nedges] = newpos;
 	      nedges++;
 	      newedge.length++;
@@ -184,7 +182,6 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
 	    }
 	  }
 	} while (nedges > 0);
-	
 	if (newedge.length > minlength) {
 	  edgeList->push_front(newedge);
 	  color = CIRCULAR_ADD(color, 254, 1) + 1;

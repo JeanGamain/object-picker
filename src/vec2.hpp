@@ -207,7 +207,7 @@ struct vec2
     return { x * b.x + y * b.y };
   }
     
-  cordinate	to1D(int xlen) const {
+  inline cordinate	to1D(int xlen) const {
     return xlen * y + x;
   }
   

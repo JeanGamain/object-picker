@@ -70,16 +70,21 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
   std::list<Canny::edge> * edges = canny->edgeDetection(inbw);
   
   printf("detected edges : %lu\n", edges->size());
-  /*for (std::list<Canny::edge>::const_iterator i = edges->begin();
+  for (std::list<Canny::edge>::const_iterator i = edges->begin();
        i != edges->end();
        ++i) {
-    img->pixel[(*i).to1D(img->size.x - 1)].setrvb(0, 255, 0);
+    img->pixel[(*i).pos.to1D(img->size.x)].setrvb(0, 0, 255);
     for (std::list<vec2>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end();
 	 ++j) {
-      img->pixel[(*j).to1D(img->size.x - 1)].setrvb(255, 0, 0);
+      if ((*i).loop) {
+	img->pixel[(*j).to1D(img->size.x)].setrvb(0, 255, 0);
+      } else {
+	img->pixel[(*j).to1D(img->size.x)].setrvb(255, 0, 0);
+      }
+      // uint16_t((*i).color * (65025 / 255))
     }
-    }*/
+  }
   
   return 0;
 }
