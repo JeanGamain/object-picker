@@ -16,16 +16,6 @@
 #include "pixel16.hpp"
 extern image<pixel16> * img;
 
-/*
- * Links:
- * http://en.wikipedia.org/wiki/Canny_edge_detector
- * http://www.tomgibara.com/computer-vision/CannyEdgeDetector.java
- * http://fourier.eng.hmc.edu/e161/lectures/canny/node1.html
- * http://www.songho.ca/dsp/cannyedge/cannyedge.html
- *
- * Note: T1 and T2 are lower and upper thresholds.
- */
-
 Canny::Canny(vec2 const & size,
 	     unsigned int dump = 45,
 	     unsigned int minlength = 6,
@@ -44,27 +34,25 @@ Canny::Canny(vec2 const & size,
   Gx = new image<pixelf>(size);
   Gy = new image<pixelf>(size);
   nms = new image<pixelf>(size);
-  boundClear = new image<pixelf>(size);
+  boundClearScan = new unsigned char[size.x * size.y];
+  scan = new unsigned char[size.x * size.y];
+  
   G->clear();
   Gx->clear();
   Gy->clear();
   nms->clear();
-  boundClear->clear();
+  memset(boundClearScan, 0, sizeof(char) * size.x * size.y);
   for (int x = 0; x < size.x; ++x) {
-      boundClear->pixel[x] = 255.0f;
-      boundClear->pixel[(size.y - 1) * size.x + x] = 255.0f;
-      //img->pixel[x].setrvb(0, 255, 0);
-      //img->pixel[(size.y - 1) * size.x + x].setrvb(0, 255, 0);
+      boundClearScan[x] = 255;
+      boundClearScan[(size.y - 1) * size.x + x] = 255;
   }
   int sx = size.x - 1;
   for (int y = 0; y < size.y; ++y) {
-      boundClear->pixel[y * size.x] = 255.0f;
-      boundClear->pixel[y * size.x + sx] = 255.0f;
-      //img->pixel[y * size.x].setrvb(255, 0, 0);
-      //img->pixel[y * size.x + sx].setrvb(0, 0, 255);
+      boundClearScan[y * size.x] = 255;
+      boundClearScan[y * size.x + sx] = 255;
   }
   // Reuse array
-  edges = (vec2*)Gx->pixel;
+  edges = (int*)Gx->pixel;
 }
 
 Canny::~Canny() {
@@ -73,6 +61,8 @@ Canny::~Canny() {
   delete(Gy);
   delete(nms);
   delete(blur);
+  delete(boundClearScan);
+  delete(scan);
 }
 
 
@@ -134,50 +124,56 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
     }
   }
 
-  memcpy(G->pixel, boundClear->pixel, size.x * size.y * sizeof(pixelf));
-  
-  vec2 p;
-  size_t c = 1;
-  int nedges;
-  size_t pos1d;
-  vec2 newpos;
-  vec2 newpossave;
+  memcpy(scan, boundClearScan, size.x * size.y * sizeof(char));
+
   Canny::edge newedge;
-  float color = 1;
   std::list<edge> * edgeList = new std::list<edge>();
+  vec2 p;
+  unsigned char color = 1;
+  int c = 1;
+  int nedges;
+  int pos1d;
+  int kdir[9];
+
   for (p.y = 1; p.y < size.y - 1; p.y++) {
     for (p.x = 1; p.x < size.x - 1; p.x++) {
       c = p.to1D(size.x);
-      if (nms->pixel[c] >= tmax && G->pixel[c] < 1.0f) { // trace edge
+      if (nms->pixel[c] >= tmax && scan[c] < 1) { // trace edge
 	nedges = 1;
 	newedge.pos = vec2(cordinate(c), 0);
 	newedge.loop = false;
 	newedge.length = 1;
 	newedge.color = (unsigned int)color;
-	newedge.point = new std::list<vec2>();
-	G->pixel[c].set(color); // colo
-	edges[0] = p;
+	newedge.point = new std::list<int>();
+	scan[c] = color;
+	edges[0] = c;
 	do {
-	  nedges--;
-	  newpossave = edges[nedges];
+	  kdir[8] = edges[--nedges];
+	  kdir[0] = kdir[8] + size.x;
+	  kdir[1] = kdir[8] - size.y;
+	  kdir[2] = kdir[8] + 1;
+	  kdir[3] = kdir[8] - 1;
+	  kdir[4] = kdir[0] + 1;
+	  kdir[5] = kdir[0] - 1;
+	  kdir[6] = kdir[1] + 1;
+	  kdir[7] = kdir[1] - 1;
 	  for (int k = 0; k < 8; k++) {
-	    newpos = newpossave + dir[k];
-	    pos1d = (newpos).to1D(size.x); // what what
+	    pos1d = kdir[k];
 	    if (nms->pixel[pos1d] >= tmin
-		&& G->pixel[pos1d] < 1.0f) {
-	      /*if (newpos < vec2(1, 1) || newpos >= vec2(size.x - 1, size.y - 1)) {
-		printf("newpos: %d %d c: %f t: %f\n", newpos.x, newpos.y, G->pixel[pos1d].pixel, G->pixel[newpos.to1D(size.x)].pixel);
+		&& scan[pos1d] < 1) {
+	      /*if (pos1d < (size.x * 1 + 1) || pos1d >= ((size.x - 1) + (size.y - 1) * size.x)) {
+		printf("NOO\n");
 		continue;
-		}*/
-	      G->pixel[pos1d].set(color);
-	      edges[nedges] = newpos;
+	      }*/
+	      scan[pos1d] = color;
+	      edges[nedges] = pos1d;
 	      nedges++;
 	      newedge.length++;
 	      if (dump == 0 || newedge.length % dump == 0) {
-		newedge.point->push_front(newpos);
+		newedge.point->push_front(pos1d);
 	      }
 	    }
-	    if (G->pixel[pos1d] == color) {
+	    if (scan[pos1d] == color) {
 	      newedge.loop = true;
 	    }
 	  }

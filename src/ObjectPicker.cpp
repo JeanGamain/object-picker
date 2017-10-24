@@ -74,15 +74,10 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
        i != edges->end();
        ++i) {
     img->pixel[(*i).pos.to1D(img->size.x)].setrvb(0, 0, 255);
-    for (std::list<vec2>::const_iterator j = (*i).point->begin();
+    for (std::list<int>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end();
 	 ++j) {
-      if ((*i).loop) {
-	img->pixel[(*j).to1D(img->size.x)].setrvb(0, 255, 0);
-      } else {
-	img->pixel[(*j).to1D(img->size.x)].setrvb(255, 0, 0);
-      }
-      // uint16_t((*i).color * (65025 / 255))
+      img->pixel[(*j)].pixel = uint16_t((*i).color * (65025 / 255));
     }
   }
   

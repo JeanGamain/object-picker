@@ -16,7 +16,7 @@ public:
     unsigned int	length;
     unsigned char	color;		
     char		loop;
-    std::list<vec2> *	point;
+    std::list<int> *	point;
   }			edge;
   
 public:
@@ -51,8 +51,9 @@ private:
   image<pixelf> * Gx;
   image<pixelf>	* Gy;
   image<pixelf> * nms;
-  image<pixelf> * boundClear;
-  vec2 *	  edges;
+  unsigned char * boundClearScan;
+  unsigned char * scan;
+  int *		  edges;
   
   const pixelf GMx[9] = {
     -1, 0, 1,
