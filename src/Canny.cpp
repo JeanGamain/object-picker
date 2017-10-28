@@ -9,7 +9,7 @@
 #include <list>
 #include <omp.h>
 #include "pixelf.hpp"
-#include "convolution.hpp"
+#include "Convolution.hpp"
 #include "Gaussian.hpp"
 #include "math.hpp"
 
@@ -35,7 +35,7 @@ Canny::Canny(vec2 const & size,
   Gy = new image<pixelf>(size);
   nms = new image<pixelf>(size);
   boundClearScan = new unsigned char[size.x * size.y];
-  scan = new unsigned char[size.x * size.y];
+  detectionState = new unsigned char[size.x * size.y];
   
   G->clear();
   Gx->clear();
@@ -53,6 +53,7 @@ Canny::Canny(vec2 const & size,
   }
   // Reuse array
   edges = (int*)Gx->pixel;
+  edgeList = new std::list<edge>();
 }
 
 Canny::~Canny() {
@@ -62,11 +63,12 @@ Canny::~Canny() {
   delete(nms);
   delete(blur);
   delete(boundClearScan);
-  delete(scan);
+  delete(detectionState);
+  delete(edgeList);
 }
 
 
-std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
+image<pixelf> * Canny::scan(image<pixelf> * in)
 {
   assert(in->pixel != NULL);
 
@@ -123,11 +125,13 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
 	nms->pixel[c] = 0;
     }
   }
+  return nms;
+}
 
-  memcpy(scan, boundClearScan, size.x * size.y * sizeof(char));
-
+std::list<Canny::edge> *	Canny::get() {
+  memcpy(detectionState, boundClearScan, size.x * size.y * sizeof(char));
+  edgeList->clear();
   Canny::edge newedge;
-  std::list<edge> * edgeList = new std::list<edge>();
   vec2 p;
   unsigned char color = 1;
   int c = 1;
@@ -138,14 +142,13 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
   for (p.y = 1; p.y < size.y - 1; p.y++) {
     for (p.x = 1; p.x < size.x - 1; p.x++) {
       c = p.to1D(size.x);
-      if (nms->pixel[c] >= tmax && scan[c] < 1) { // trace edge
+      if (nms->pixel[c] >= tmax && detectionState[c] < 1) { // trace edge
 	nedges = 1;
 	newedge.pos = vec2(cordinate(c), 0);
-	newedge.loop = false;
 	newedge.length = 1;
 	newedge.color = (unsigned int)color;
 	newedge.point = new std::list<int>();
-	scan[c] = color;
+	detectionState[c] = 255;
 	edges[0] = c;
 	do {
 	  kdir[8] = edges[--nedges];
@@ -160,23 +163,20 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
 	  for (int k = 0; k < 8; k++) {
 	    pos1d = kdir[k];
 	    if (nms->pixel[pos1d] >= tmin
-		&& scan[pos1d] < 1) {
-	      /*if (pos1d < (size.x * 1 + 1) || pos1d >= ((size.x - 1) + (size.y - 1) * size.x)) {
-		printf("NOO\n");
-		continue;
-	      }*/
-	      scan[pos1d] = color;
+		&& detectionState[pos1d] < 1) {
+	      //if (pos1d < (size.x * 1 + 1) || pos1d >= ((size.x - 1) + (size.y - 1) * size.x)) {
+	      // printf("NOO\n");
+	      // continue;
+	      // }
+	      detectionState[pos1d] = color;
 	      edges[nedges] = pos1d;
 	      nedges++;
 	      newedge.length++;
 	      if (dump == 0 || newedge.length % dump == 0) {
-		newedge.point->push_front(pos1d);
+		newedge.point->push_front({ pos1d, k });
 	      }
 	    }
-	    if (scan[pos1d] == color) {
-	      newedge.loop = true;
-	    }
-	  }
+	 }
 	} while (nedges > 0);
 	if (newedge.length > minlength) {
 	  edgeList->push_front(newedge);
@@ -187,6 +187,7 @@ std::list<Canny::edge> * Canny::edgeDetection(image<pixelf> * in)
   }
   return edgeList;
 }
+
 
 
 void Canny::setMax(float max) {

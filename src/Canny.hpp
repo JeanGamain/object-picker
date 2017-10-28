@@ -8,22 +8,27 @@
 #include "math.hpp"
 #include "Gaussian.hpp"
 
-
 class Canny {
 public:
-  typedef struct edge_t{
-    vec2		pos;
-    unsigned int	length;
-    unsigned char	color;		
-    char		loop;
-    std::list<int> *	point;
-  }			edge;
+  typedef struct	edge_point_t {
+    unsigned int	position;
+    char		normal;
+  }			edge_point;
+  
+  typedef struct		edge_t {
+    vec2			pos;
+    unsigned int		length;
+    unsigned char		color;		
+    std::list<edge_point> *	point;
+  }				edge;
   
 public:
   Canny(vec2 const & size, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
   ~Canny();
   
-  std::list<edge> * edgeDetection(image<pixelf> * in);
+  image<pixelf> *	scan(image<pixelf> * in);
+  std::list<edge> *	get();
+
   // use generic image type
 
   void setMax(float max);
@@ -51,8 +56,9 @@ private:
   image<pixelf> * Gx;
   image<pixelf>	* Gy;
   image<pixelf> * nms;
+  std::list<edge> * edgeList;
   unsigned char * boundClearScan;
-  unsigned char * scan;
+  unsigned char * detectionState;
   int *		  edges;
   
   const pixelf GMx[9] = {

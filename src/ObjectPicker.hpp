@@ -9,6 +9,13 @@
 
 class ObjectPicker {
 public:
+  typedef struct colorsplit_t{
+    vec2		position;
+    unsigned int	length;
+    pixel16		color;		
+  }			colorSplit;
+  
+public:
   ObjectPicker(vec2 size);
   ~ObjectPicker();
 

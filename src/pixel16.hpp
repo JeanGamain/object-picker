@@ -163,7 +163,6 @@ public:
     return (npixel)(float(this->pixel >> 11 & 0x1f) / 0x1f * 255);
   }
 
-  
   char getr() const {
     return static_cast<char>(this->pixel & 0x001f);
   }

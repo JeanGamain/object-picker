@@ -226,8 +226,8 @@ struct vec2
   
   vec2 & 	rotateByCache(double sin, double cos)
   {
-    x = (cordinate)(x * cos - y * sin);
-    y = (cordinate)(x * sin + y * cos);
+    vec2 n = { (cordinate)(x * cos - y * sin), (cordinate)(x * sin + y * cos) };
+    *this = n;
     return *this;
   }
   

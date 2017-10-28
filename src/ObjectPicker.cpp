@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <list>
 #include <iterator>
+#include "LinearDisplacement.hpp"
 #include "ObjectPicker.hpp"
 
 extern float diffa;
@@ -21,6 +22,7 @@ ObjectPicker::ObjectPicker(vec2 size)
     inbw(new image<pixelf>(size)),
     lock(0)
 {
+
 }
 
 ObjectPicker::~ObjectPicker() {
@@ -67,9 +69,54 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
     newin = G;
     }*/
   
-  std::list<Canny::edge> * edges = canny->edgeDetection(inbw);
+  image<pixelf> * scany = canny->scan(inbw);
   
-  printf("detected edges : %lu\n", edges->size());
+  const vec2 rayon = vec2(10, 0); // pixel
+  const vec2 center = scany->size / 2;
+  const int ray = 9;
+  vec2 pos, vector;
+  colorSplit	maxSplit[ray];
+  colorSplit	split;
+  unsigned long colorComponent[3];
+  std::list<colorSplit> lineSplit[ray];
+
+  for (int i = 0; i < ray; i++) {
+    vector = rayon;
+    vector.rotate(360.0f / ray * float(i));
+    LinearDisplacement line(center + vector, vector * img->size.y);
+    for (pos = line.get();
+	 pos > vec2(0, 0) && pos < scany->size && !line.end();) {
+      while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
+	     && scany->pixel[pos.to1D(img->size.x)] >= tmin)
+	pos = line.get();
+      split.position = pos;
+      split.length = 0;
+      colorComponent[0] = 0;
+      colorComponent[1] = 0;
+      colorComponent[2] = 0;
+      for (;pos > vec2(0, 0) && pos < scany->size && !line.end()
+	     && scany->pixel[pos.to1D(img->size.x)] < tmax;
+	   pos = line.get()) {
+	split.length++;
+	colorComponent[0] += img->pixel[pos.to1D(img->size.x)].getr();
+	colorComponent[1] += img->pixel[pos.to1D(img->size.x)].getv();
+	colorComponent[2] += img->pixel[pos.to1D(img->size.x)].getb();
+	img->pixel[pos.to1D(img->size.x)].pixel = uint16_t(i * lineSplit[i].size() * (65025 / (ray * 18)));
+      }
+      if (split.length > minlength) {
+	colorComponent[0] /= split.length;
+	colorComponent[1] /= split.length;
+	colorComponent[2] /= split.length;
+	split.color.setrvb(colorComponent[0], colorComponent[1], colorComponent[2]);
+	if (lineSplit[i].size() == 0 || maxSplit[i].length < split.length) {
+	  maxSplit[i] = split; 
+	}
+	lineSplit[i].push_front(split);
+      }
+    }
+  }
+ 
+  std::list<Canny::edge> * edges = canny->get();
   for (std::list<Canny::edge>::const_iterator i = edges->begin();
        i != edges->end();
        ++i) {
@@ -77,10 +124,10 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
     for (std::list<int>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end();
 	 ++j) {
-      img->pixel[(*j)].pixel = uint16_t((*i).color * (65025 / 255));
+      // if color == max or before
+      img->pixel[(*j).position].pixel = uint16_t((*i).color * (65025 / 255));
     }
-  }
-  
+  }  
   return 0;
 }
 
@@ -95,7 +142,7 @@ unsigned int ObjectPicker::getLock() const {
 
 float	ObjectPicker::getResize() const {
   return resize;
-}
+)
 
 void	ObjectPicker::setResize(float r) {
   if (r <= 0) {
@@ -106,62 +153,3 @@ void	ObjectPicker::setResize(float r) {
   // resize canny
   resize = r;
 }
-
-/*
-static float lineRepartitor(int i, int max) {
-  return ((float)(i * i) / (float)(max * max));
-}
-
-char pixelDiff(uint16_t a, uint16_t b) {
-  // R: 0x001f, V:0x07e0, B:0xf800
-  if (a == 0xFFFF || b == 0xFFFF)
-    return 0;
-  return (((float)(abs((a & 0x001f) - (b & 0x001f)) +
-	  abs((a & 0x07e0 >> 5) - (b & 0x07e0 >> 5)) +
-	   abs((a & 0xf800 >> 11) - (b & 0xf800 >> 11))) / 3 / 32)
-	  > 0.04);
-
-}
-void de(uint16_t *pixels, int x, int y) {
-  const int dirVec[8][2] = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}};
-  int rx, ry;
-  
-  for (int i = 0; i < 8; ++i) {
-    rx = x + dirVec[i][0];
-    if (rx < 0 || rx > VIDEOWIDTH)
-      continue;
-    ry = y + dirVec[i][1];
-    if (ry < 0 || ry > VIDEOHEIGHT)
-      continue;
-    if (pixelDiff(pixels[y * VIDEOWIDTH + x], pixels[ry * VIDEOWIDTH + rx]) == 1) {
-      pixels[y * VIDEOWIDTH + x] = 0xffff;
-      detectBorder(pixels, rx, ry);
-    }
-  }
-}
-*/
-/*
-static void objectDetectionOverlay(void *const *pixelsbuffer) {
-  uint16_t *pixels = static_cast<uint16_t *>(*pixelsbuffer);
-  const int line = 18;
-  int x, y, i;
-
-  for (i = 0; i < line; ++i) {
-    if (i == 0)
-      x = VIDEOWIDTH / 2;
-    else
-      x = (int)(((VIDEOWIDTH - 10) / 2) * lineRepartitor((i / 2), line / 2)) * (i % 2 == 0 ? -1 : 1) + (VIDEOWIDTH / 2);
-    //if (x > VIDEOWIDTH)
-    //  x = VIDEOWIDTH;
-    //else if (x < 0)
-    //  x = 0;
-    for (y = 0; y < (VIDEOHEIGHT / 2); ++y) {
-      //haut
-      detectBorder(pixels, x, y);
-      // bas
-      detectBorder(pixels, x, VIDEOHEIGHT - y);
-    }
-    //detectBorder(pixels, x, VIDEOHEIGHT / 2);
-  }
-}
-*/

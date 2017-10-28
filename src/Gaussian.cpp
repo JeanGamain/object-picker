@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include "math.h"
-#include "convolution.hpp"
+#include "Convolution.hpp"
 #include "Canny.hpp"
 #include "pixelf.hpp"
 

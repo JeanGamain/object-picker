@@ -15,7 +15,8 @@ set(${PROJECT_NAME}_src
 	./src/ObjectPicker.cpp
 	./src/Gaussian.cpp
 	./src/Canny.cpp
-	./src/convolution.cpp
+	./src/Convolution.cpp
+	./src/LinearDisplacement.cpp
 	)
 
 set(objectpicker_includes_directories
