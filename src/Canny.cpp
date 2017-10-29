@@ -147,7 +147,7 @@ std::list<Canny::edge> *	Canny::get() {
 	newedge.pos = vec2(cordinate(c), 0);
 	newedge.length = 1;
 	newedge.color = (unsigned int)color;
-	newedge.point = new std::list<int>();
+	newedge.point = new std::list<edgePoint>();
 	detectionState[c] = 255;
 	edges[0] = c;
 	do {
@@ -173,7 +173,7 @@ std::list<Canny::edge> *	Canny::get() {
 	      nedges++;
 	      newedge.length++;
 	      if (dump == 0 || newedge.length % dump == 0) {
-		newedge.point->push_front({ pos1d, k });
+		newedge.point->push_front({ (unsigned int)pos1d, (char)k });
 	      }
 	    }
 	 }

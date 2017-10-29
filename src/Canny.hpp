@@ -13,13 +13,13 @@ public:
   typedef struct	edge_point_t {
     unsigned int	position;
     char		normal;
-  }			edge_point;
+  }			edgePoint;
   
   typedef struct		edge_t {
     vec2			pos;
     unsigned int		length;
     unsigned char		color;		
-    std::list<edge_point> *	point;
+    std::list<edgePoint> *	point;
   }				edge;
   
 public:

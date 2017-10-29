@@ -9,7 +9,11 @@
 
 class ObjectPicker {
 public:
-  typedef struct colorsplit_t{
+  typedef struct	object_feature_t {
+    std::list<pixel16>	sideEdgeColor[2];
+  }			objectFeature;
+  
+  typedef struct colorsplit_t {
     vec2		position;
     unsigned int	length;
     pixel16		color;		
@@ -19,13 +23,14 @@ public:
   ObjectPicker(vec2 size);
   ~ObjectPicker();
 
-  unsigned int detect(image<pixel16> * img);
-  bool	       setLock(unsigned int);
-
-  void		setResize(float r);
+  void *		detect(image<pixel16> * img);
+  objectFeature const &	detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img);
  
+  void		setResize(float r); 
   float		getResize() const;
-  unsigned int	getLock() const;
+  
+  bool		setLock(void *);
+  void *	getLock() const;
   
 private:
   vec2	truesize;
@@ -40,7 +45,7 @@ private:
  
   Canny * canny;
   image<pixelf> * inbw;
-  unsigned int lock;
+  objectFeature	lock;
 };
 
 #endif /* ! OBJECTPICKER */

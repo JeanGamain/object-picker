@@ -175,6 +175,12 @@ public:
     return static_cast<char>(this->pixel >> 11 & 0x1f);
   }
 
+  float diff(pixel16 const & b) const { // use inline
+    return (float(abs(int(this->pixel & 0x1f) - (b.pixel & 0x1f))) / 0x1f +
+	    float(abs(int(this->pixel >> 5 & 0x3f) - (b.pixel >> 5 & 0x3f))) / 0x3f +
+	    float(abs(int(this->pixel >> 11 & 0x1f) - (b.pixel >> 11 & 0x1f))) / 0x1f) / 3 * 100;
+  }
+
   void clrr() {
     pixel &= 0xfe0;
   }

@@ -20,7 +20,7 @@ ObjectPicker::ObjectPicker(vec2 size)
     sigma(1.5f),
     canny(new Canny(size, dump, minlength, tmin, tmax, sigma)),
     inbw(new image<pixelf>(size)),
-    lock(0)
+    lock()
 {
 
 }
@@ -30,7 +30,7 @@ ObjectPicker::~ObjectPicker() {
   delete inbw;
 }
 
-unsigned int	ObjectPicker::detect(image<pixel16> * img) {
+void *		ObjectPicker::detect(image<pixel16> * img) {
   static float lastdump = diffa;
   static float lasttmin = diffb;
   static float lasttmax = diffc;
@@ -70,19 +70,39 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
     }*/
   
   image<pixelf> * scany = canny->scan(inbw);
+  // if lock use lock
+  objectFeature objFeature = detectCenterObjectFeature(scany, img);
   
+  
+  std::list<Canny::edge> * edges = canny->get();
+  for (std::list<Canny::edge>::const_iterator i = edges->begin();
+       i != edges->end();
+       ++i) {
+    img->pixel[(*i).pos.to1D(img->size.x)].setrvb(0, 0, 255);
+    for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin();
+	 j != (*i).point->end();
+	 ++j) {
+      // if color == max or before
+      img->pixel[(*j).position].pixel = uint16_t((*i).color * (65025 / 255));
+    }
+  }  
+  return 0;
+}
+
+ObjectPicker::objectFeature const &	ObjectPicker::detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img) {
+  static objectFeature object;
   const vec2 rayon = vec2(10, 0); // pixel
   const vec2 center = scany->size / 2;
   const int ray = 9;
   vec2 pos, vector;
-  colorSplit	maxSplit[ray];
+  colorSplit	maxSplit[ray][2];
   colorSplit	split;
   unsigned long colorComponent[3];
   std::list<colorSplit> lineSplit[ray];
 
   for (int i = 0; i < ray; i++) {
     vector = rayon;
-    vector.rotate(360.0f / ray * float(i));
+    vector.rotate(360.0f / float(ray) * i);
     LinearDisplacement line(center + vector, vector * img->size.y);
     for (pos = line.get();
 	 pos > vec2(0, 0) && pos < scany->size && !line.end();) {
@@ -108,41 +128,55 @@ unsigned int	ObjectPicker::detect(image<pixel16> * img) {
 	colorComponent[1] /= split.length;
 	colorComponent[2] /= split.length;
 	split.color.setrvb(colorComponent[0], colorComponent[1], colorComponent[2]);
-	if (lineSplit[i].size() == 0 || maxSplit[i].length < split.length) {
-	  maxSplit[i] = split; 
+	if (lineSplit[i].size() == 1 || maxSplit[i][0].length < split.length) {
+	  maxSplit[i][0] = split;
+	  maxSplit[i][1] = *lineSplit[i].begin();
 	}
 	lineSplit[i].push_front(split);
       }
     }
   }
- 
-  std::list<Canny::edge> * edges = canny->get();
-  for (std::list<Canny::edge>::const_iterator i = edges->begin();
-       i != edges->end();
-       ++i) {
-    img->pixel[(*i).pos.to1D(img->size.x)].setrvb(0, 0, 255);
-    for (std::list<int>::const_iterator j = (*i).point->begin();
-	 j != (*i).point->end();
-	 ++j) {
-      // if color == max or before
-      img->pixel[(*j).position].pixel = uint16_t((*i).color * (65025 / 255));
+  int side, j, i;
+  for (side = 0; side < 2; side++) {
+    object.sideEdgeColor[side].clear();
+    for (i = 0; i < ray; ++i) {
+      for (j = i + 1; j < ray; ++j) {
+	// equivalent color, skiping first, use seconde color for both
+	if (maxSplit[i][side].color.diff(maxSplit[j][side].color) < 3) { // %
+	  maxSplit[j][side].color.setr((long(maxSplit[j][side].color.getr())
+				     + maxSplit[i][side].color.getr()) / 2);
+	  maxSplit[j][side].color.setv((long(maxSplit[j][side].color.getv())
+				     + maxSplit[i][side].color.getv()) / 2);
+	  maxSplit[j][side].color.setb((long(maxSplit[j][side].color.getb())
+				     + maxSplit[i][side].color.getb()) / 2);
+	break;
+	}
+      }
+      if (j == ray) { // no equivalence with other color found
+	object.sideEdgeColor[side].push_front(maxSplit[i][0].color);
+      }
     }
-  }  
-  return 0;
+  }
+  return object;
 }
 
-bool ObjectPicker::setLock(unsigned int l) {
-  lock = l;
-  return true;
+bool	ObjectPicker::setLock(void * l) {
+  objectFeature newlock = *(ObjectPicker::objectFeature *)l;
+
+  if (newlock.sideEdgeColor[0].size() > 0 && newlock.sideEdgeColor[1].size() > 0) {
+    lock = newlock;
+    return true;
+  }
+  return false;
 }
 
-unsigned int ObjectPicker::getLock() const {
-  return lock;
+void * ObjectPicker::getLock() const {
+  return (void *)&lock;
 }
 
 float	ObjectPicker::getResize() const {
   return resize;
-)
+}
 
 void	ObjectPicker::setResize(float r) {
   if (r <= 0) {
