@@ -128,67 +128,72 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
   return nms;
 }
 
-std::list<Canny::edge> *	Canny::get() {
-  memcpy(detectionState, boundClearScan, size.x * size.y * sizeof(char));
-  edgeList->clear();
-  Canny::edge newedge;
-  vec2 p;
-  unsigned char color = 1;
-  int c = 1;
-  int nedges;
-  int pos1d;
-  int kdir[9];
+bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump) {
+  unsigned int nedges;
+  cordinate kdir[9];
+  cordinate pos1d;
 
+  if (nms->pixel[position] < tmax || detectionState[position] > 0)
+    return false;
+ 
+  nedges = 1;
+  newedge.position = position;
+  newedge.length = 1;
+  newedge.color = 0; // use for pixel moy of the edge 
+  newedge.point = new std::list<edgePoint>();
+  detectionState[position] = 255;
+  edges[0] = position;
+  do {
+    kdir[8] = edges[--nedges];
+    kdir[0] = kdir[8] + size.x;
+    kdir[1] = kdir[8] - size.y;
+    kdir[2] = kdir[8] + 1;
+    kdir[3] = kdir[8] - 1;
+    kdir[4] = kdir[0] + 1;
+    kdir[5] = kdir[0] - 1;
+    kdir[6] = kdir[1] + 1;
+    kdir[7] = kdir[1] - 1;
+    for (int k = 0; k < 8; k++) {
+      pos1d = kdir[k];
+      if (nms->pixel[pos1d] >= tmin
+	  && detectionState[pos1d] < 1) {
+	//if (pos1d < (size.x * 1 + 1) || pos1d >= ((size.x - 1) + (size.y - 1) * size.x)) {
+	// printf("NOO\n");
+	// continue;
+	// }
+	detectionState[pos1d] = 255;
+	edges[nedges] = pos1d;
+	nedges++;
+	newedge.length++;
+	if (dump == 0 || newedge.length % dump == 0) {
+	  newedge.point->push_front({ pos1d, (char)k });
+	}
+      }
+    }
+  } while (nedges > 0);
+  return true;
+}
+
+void				Canny::clearDetectionState() {
+  memcpy(detectionState, boundClearScan, size.x * size.y * sizeof(char));
+}
+
+std::list<Canny::edge> *	Canny::get() {
+  edge newedge;
+  vec2 p;
+  
+  edgeList->clear();
+  clearDetectionState();
   for (p.y = 1; p.y < size.y - 1; p.y++) {
     for (p.x = 1; p.x < size.x - 1; p.x++) {
-      c = p.to1D(size.x);
-      if (nms->pixel[c] >= tmax && detectionState[c] < 1) { // trace edge
-	nedges = 1;
-	newedge.pos = vec2(cordinate(c), 0);
-	newedge.length = 1;
-	newedge.color = (unsigned int)color;
-	newedge.point = new std::list<edgePoint>();
-	detectionState[c] = 255;
-	edges[0] = c;
-	do {
-	  kdir[8] = edges[--nedges];
-	  kdir[0] = kdir[8] + size.x;
-	  kdir[1] = kdir[8] - size.y;
-	  kdir[2] = kdir[8] + 1;
-	  kdir[3] = kdir[8] - 1;
-	  kdir[4] = kdir[0] + 1;
-	  kdir[5] = kdir[0] - 1;
-	  kdir[6] = kdir[1] + 1;
-	  kdir[7] = kdir[1] - 1;
-	  for (int k = 0; k < 8; k++) {
-	    pos1d = kdir[k];
-	    if (nms->pixel[pos1d] >= tmin
-		&& detectionState[pos1d] < 1) {
-	      //if (pos1d < (size.x * 1 + 1) || pos1d >= ((size.x - 1) + (size.y - 1) * size.x)) {
-	      // printf("NOO\n");
-	      // continue;
-	      // }
-	      detectionState[pos1d] = color;
-	      edges[nedges] = pos1d;
-	      nedges++;
-	      newedge.length++;
-	      if (dump == 0 || newedge.length % dump == 0) {
-		newedge.point->push_front({ (unsigned int)pos1d, (char)k });
-	      }
-	    }
-	 }
-	} while (nedges > 0);
-	if (newedge.length > minlength) {
-	  edgeList->push_front(newedge);
-	  color = CIRCULAR_ADD(color, 254, 1) + 1;
-	}
+      if (getEdge(newedge, p.to1D(size.x), this->dump)
+	  && newedge.length > minlength) {
+	edgeList->push_front(newedge);
       }
     }
   }
   return edgeList;
 }
-
-
 
 void Canny::setMax(float max) {
   tmax = max;

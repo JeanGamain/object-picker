@@ -11,12 +11,12 @@
 class Canny {
 public:
   typedef struct	edge_point_t {
-    unsigned int	position;
+    cordinate		position;
     char		normal;
   }			edgePoint;
   
   typedef struct		edge_t {
-    vec2			pos;
+    cordinate			position;
     unsigned int		length;
     unsigned char		color;		
     std::list<edgePoint> *	point;
@@ -25,8 +25,10 @@ public:
 public:
   Canny(vec2 const & size, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
   ~Canny();
-  
+
   image<pixelf> *	scan(image<pixelf> * in);
+  bool			getEdge(edge & newedge, cordinate position, unsigned int dump);
+  void			clearDetectionState();
   std::list<edge> *	get();
 
   // use generic image type
@@ -74,6 +76,7 @@ private:
     -1,-2,-1
   };
 
+public:
   enum   D {
     NW = 0, N, NE,
     W, E,

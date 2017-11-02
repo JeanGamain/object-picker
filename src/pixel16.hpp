@@ -168,11 +168,11 @@ public:
   }
   
   char getv() const {
-    return static_cast<char>(this->pixel >> 5 & 0x3f);
+    return static_cast<char>(this->pixel >> 5 & 0x003f);
   }
   
   char getb() const {
-    return static_cast<char>(this->pixel >> 11 & 0x1f);
+    return static_cast<char>(this->pixel >> 11 & 0x001f);
   }
 
   float diff(pixel16 const & b) const { // use inline
