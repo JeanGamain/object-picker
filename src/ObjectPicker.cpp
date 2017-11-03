@@ -13,11 +13,12 @@ ObjectPicker::ObjectPicker(vec2 size)
   : truesize(size),
     resize(0.0f),
     size((resize > 0.0f) ? size * vec2(resize, resize) : size),
-    dump(10),
+    dump(1),
     minlength(1), //10
     tmin(50),
     tmax(70),
     sigma(1.5f),
+    colorSplitDetetionRay(13),
     maxPixelDiff(30.0f),
     canny(new Canny(size, dump, minlength, tmin, tmax, sigma)),
     inbw(new image<pixelf>(size)),
@@ -77,8 +78,21 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
 
   //printf("feature size %lu %lu\n", objFeature.sideEdgeColor[0].size(), objFeature.sideEdgeColor[1].size());
 
-  std::list<Canny::edge> * edges = canny->get();
+  //std::list<Canny::edge> * edges = canny->get();
 
+  canny->clearDetectionState();
+  std::list<Canny::edge>   objectEdges;
+  Canny::edge newedge;
+  
+  for (int i = 0; i < colorSplitDetetionRay; i++) {
+    if (objFeature.maxColorSplit[i].edgePosition != 0
+	&& canny->getEdge(newedge, objFeature.maxColorSplit[i].edgePosition, dump + lastdump)
+	&& newedge.length > minlength) {
+      objectEdges.push_front(newedge); 
+    }
+  }
+  std::list<Canny::edge>  * edges = &objectEdges;
+  
   for (std::list<Canny::edge>::const_iterator i = edges->begin();
        i != edges->end();
        ++i) {
@@ -86,16 +100,21 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
     for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end();
 	 ++j) {
-      if (isMatchingObjectFeatures(*img, objFeature, (*j).position, (*j).normal, maxPixelDiff))
+      /*if (isMatchingObjectFeatures(*img, objFeature, (*j).position, (*j).normal, maxPixelDiff))
 	img->pixel[(*j).position].setrvb(0, 0, 255);
-      else
+	else*/
 	img->pixel[(*j).position].setrvb(255, 0, 0);
     }
+  }
+  for (int i = 0; i < colorSplitDetetionRay; i++) {
+    img->pixel[objFeature.maxColorSplit[i].position.to1D(img->size.x)].setrvb(0, 255, 0);
   }
   return NULL;
 }
 
-bool	ObjectPicker::isMatchingObjectFeatures(image<pixel16> const & image, objectFeature const & objFeature, cordinate position, char normal, float maxDiff) {
+bool	ObjectPicker::isMatchingObjectFeatures(image<pixel16> const & image,
+					       objectFeature const & objFeature,
+					       cordinate position, char normal, float maxDiff) {
   int d;
   pixel16 edgeColors[2];
  
@@ -122,65 +141,82 @@ bool	ObjectPicker::isMatchingObjectFeatures(image<pixel16> const & image, object
   return false;
 }
 
-ObjectPicker::objectFeature const &	ObjectPicker::detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img) {
-  static objectFeature object;
-  const vec2 rayon = vec2(10, 0); // pixel
-  const vec2 center = scany->size / 2;
-  const int ray = 9;
-  vec2 pos, vector;
-  colorSplit	maxSplit[ray][2];
+ObjectPicker::colorSplit		ObjectPicker::detectColorSplitFeature(image<pixelf> * scany,
+									      image<pixel16> * img,
+									      LinearDisplacement & line) {
+  unsigned int	nbSplit = 0;
   colorSplit	split;
-  unsigned long colorComponent[3];
-  std::list<colorSplit> lineSplit[ray];
+  colorSplit	maxSplit;
+  colorSplit	lastSplit;
+  //unsigned long colorComponent[3];
 
-  for (int i = 0; i < ray; i++) {
-    vector = rayon;
-    vector.rotate(360.0f / float(ray) * i);
-    LinearDisplacement line(center + vector, vector * img->size.y);
-    for (pos = line.get();
-	 pos > vec2(0, 0) && pos < scany->size && !line.end();) {
-      while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
-	     && scany->pixel[pos.to1D(img->size.x)] >= tmin)
-	pos = line.get();
-      split.position = pos;
-      split.length = 0;
-      colorComponent[0] = 0;
-      colorComponent[1] = 0;
-      colorComponent[2] = 0;
-      for (;pos > vec2(0, 0) && pos < scany->size && !line.end()
-	     && scany->pixel[pos.to1D(img->size.x)] < tmax;
-	   pos = line.get()) {
-	split.length++;
-	split.color = img->pixel[pos.to1D(img->size.x)];
-	/*	colorComponent[0] += img->pixel[pos.to1D(img->size.x)].getr();
-	colorComponent[1] += img->pixel[pos.to1D(img->size.x)].getv();
-	colorComponent[2] += img->pixel[pos.to1D(img->size.x)].getb();*/
-	//img->pixel[pos.to1D(img->size.x)].pixel = uint16_t(i * lineSplit[i].size() * (65025 / (ray * 18)));
-	//img->pixel[pos.to1D(img->size.x)].setrvb(0, 255, 0);
-      }
-      if (split.length > minlength) {
-	/*
-       colorComponent[0] /= split.length;
-	colorComponent[1] /= split.length;
-	colorComponent[2] /= split.length; */
-	//split.color.setrvb((uint16_t)colorComponent[0], (uint16_t)colorComponent[1], (uint16_t)colorComponent[2]);
-	if (lineSplit[i].size() == 1 || maxSplit[i][0].length < split.length) {
-	  maxSplit[i][0] = split;
-	  maxSplit[i][1] = *lineSplit[i].begin();
-	}
-	lineSplit[i].push_front(split);
-      }
+  maxSplit.edgePosition = 0;
+  for (vec2 pos = line.get();
+       pos > vec2(0, 0) && pos < scany->size && !line.end();) {
+    
+    split.edgePosition = pos.to1D(img->size.x);
+    while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
+	   && scany->pixel[pos.to1D(img->size.x)] >= tmax)
+      pos = line.get();
+    split.position = pos;
+    split.length = 0;
+    //colorComponent[0] = 0;
+    //colorComponent[1] = 0;
+    //colorComponent[2] = 0;
+    for (;pos > vec2(0, 0) && pos < scany->size && !line.end()
+	   && scany->pixel[pos.to1D(img->size.x)] < tmax;
+	 pos = line.get()) {
+      split.length++;
+      split.color[0] = img->pixel[pos.to1D(img->size.x)];
+      /*	colorComponent[0] += img->pixel[pos.to1D(img->size.x)].getr();
+		colorComponent[1] += img->pixel[pos.to1D(img->size.x)].getv();
+		colorComponent[2] += img->pixel[pos.to1D(img->size.x)].getb();*/
+      img->pixel[pos.to1D(img->size.x)].pixel = uint16_t(nbSplit * 65025 / 18);
+      //img->pixel[pos.to1D(img->size.x)].setrvb(0, 255, 0);
     }
+    /*
+      colorComponent[0] /= split.length;
+      colorComponent[1] /= split.length;
+      colorComponent[2] /= split.length; */
+    //split.color.setrvb((uint16_t)colorComponent[0], (uint16_t)colorComponent[1], (uint16_t)colorComponent[2]);
+    if (nbSplit == 1 || (nbSplit > 1 && maxSplit.length < split.length)) {
+      maxSplit = split;
+      maxSplit.color[1] = lastSplit.color[0];
+    }
+    lastSplit = split;
+    nbSplit++;
+  }
+  return maxSplit;
+}
+
+
+ObjectPicker::objectFeature const &	ObjectPicker::detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img) {
+  static objectFeature objectFeatures(colorSplitDetetionRay);
+  const vec2 rayon(10, 0); // pixel
+  const vec2 center = scany->size / 2;
+  vec2 vector;
+
+  for (int i = 0; i < colorSplitDetetionRay; i++) {
+    vector = rayon;
+    vector.rotate(360.0f / float(colorSplitDetetionRay) * i);
+    LinearDisplacement line(center + vector, vector * img->size.y);
+    objectFeatures.maxColorSplit[i] =
+      detectColorSplitFeature(scany, img, line);
   }
   int side, j, i;
   for (side = 0; side < 2; side++) {
-    object.sideEdgeColor[side].clear();
-    for (i = 0; i < ray; ++i) {
+    objectFeatures.sideEdgeColor[side].clear();
+    for (i = 0; i < colorSplitDetetionRay; ++i) {
+      if (objectFeatures.maxColorSplit[i].edgePosition == 0)
+	continue;
       //printf("color: %d\n", maxSplit[i][side].color.pixel);
-      img->pixel[maxSplit[i][side].position.to1D(img->size.x)] = maxSplit[i][side].color;
-      for (j = i + 1; j < ray; ++j) {
+      //img->pixel[maxSplit[i].position.to1D(img->size.x)] = maxSplit[i].color[0];
+      for (j = i + 1; j < colorSplitDetetionRay; ++j) {
 	// equivalent color, skiping first, use seconde color for both
-	if (maxSplit[i][side].color.diff(maxSplit[j][side].color) < 3) { // %
+	if (objectFeatures.maxColorSplit[j].edgePosition == 0)
+	  continue;
+	if (objectFeatures.maxColorSplit[i].color[side]
+	    .diff(objectFeatures.maxColorSplit[j].color[side]) < 3) { // %
 	  /*maxSplit[j][side].color
 	    .setrvb((uint16_t)(long(maxSplit[j][side].color.getr())
 			       + maxSplit[i][side].color.getr()) / 2,
@@ -191,13 +227,13 @@ ObjectPicker::objectFeature const &	ObjectPicker::detectCenterObjectFeature(imag
 	  break;
 	}
       }
-      if (j == ray) { // no equivalence with other color found
-	printf("sideEdge %d %d -> %d\n", i, side, maxSplit[i][side].color.pixel);
-	object.sideEdgeColor[side].push_front(maxSplit[i][side].color);
+      if (j == colorSplitDetetionRay) { // no equivalence with other color found
+	//printf("sideEdge %d %d -> %d\n", i, side, maxSplit[i][side].color.pixel);
+	objectFeatures.sideEdgeColor[side].push_front(objectFeatures.maxColorSplit[i].color[side]);
       }
     }
   }
-  return object;
+  return objectFeatures;
 }
 
 bool	ObjectPicker::setLock(void * l) {
