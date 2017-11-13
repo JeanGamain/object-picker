@@ -50,6 +50,7 @@ private:
   float	resize;
   vec2	size;
   
+  unsigned char * state;
   const unsigned int dump;
   const unsigned int minlength;
   const float tmin;
@@ -58,8 +59,8 @@ private:
   const char  colorSplitDetetionRay;
   float	      maxPixelDiff;
   
-  Canny * canny;
-  image<pixelf> * inbw;
+  Canny		canny;
+  image<pixelf>	inbw;
   objectFeature	lock;
   
 public:

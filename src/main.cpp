@@ -228,13 +228,13 @@ int main(int argc, char *argv[])
 	      printf("c- at %f\n", diffc);
 	      break;
 	    case SDLK_q:
-	      if (diffd + 1 < 40)
-		diffd += 1;
+	      if (diffd + 0.01 < 40)
+		diffd += 0.01;
 	      printf("d+ at %f\n", diffd);
 	      break;
 	    case SDLK_s:
-	      if (diffd - 1 > -40)
-		diffd -= 1;
+	      if (diffd - 0.01 > -40)
+		diffd -= 0.01;
 	      printf("d- at %f\n", diffd);
 	      break;
 	    }

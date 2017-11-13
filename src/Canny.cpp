@@ -17,12 +17,14 @@
 extern image<pixel16> * img;
 
 Canny::Canny(vec2 const & size,
+	     unsigned char * state,
 	     unsigned int dump = 45,
 	     unsigned int minlength = 6,
 	     const float tmin = 50,
 	     const float tmax = 60,
 	     const float sigma = 1.4f)
   : size(size),
+    detectionState(state),
     dump(dump),
     minlength(minlength),
     tmin(tmin),
@@ -35,8 +37,7 @@ Canny::Canny(vec2 const & size,
   Gy = new image<pixelf>(size);
   nms = new image<pixelf>(size);
   boundClearScan = new unsigned char[size.x * size.y];
-  detectionState = new unsigned char[size.x * size.y];
-  
+ 
   G->clear();
   Gx->clear();
   Gy->clear();
@@ -63,7 +64,6 @@ Canny::~Canny() {
   delete(nms);
   delete(blur);
   delete(boundClearScan);
-  delete(detectionState);
   delete(edgeList);
 }
 
@@ -174,7 +174,7 @@ bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump) {
   return true;
 }
 
-void				Canny::clearDetectionState() {
+void				Canny::clearState() {
   memcpy(detectionState, boundClearScan, size.x * size.y * sizeof(char));
 }
 
@@ -183,7 +183,7 @@ std::list<Canny::edge> *	Canny::get() {
   vec2 p;
   
   edgeList->clear();
-  clearDetectionState();
+  clearState();
   for (p.y = 1; p.y < size.y - 1; p.y++) {
     for (p.x = 1; p.x < size.x - 1; p.x++) {
       if (getEdge(newedge, p.to1D(size.x), this->dump)

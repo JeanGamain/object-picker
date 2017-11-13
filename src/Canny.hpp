@@ -23,12 +23,12 @@ public:
   }				edge;
   
 public:
-  Canny(vec2 const & size, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
+  Canny(vec2 const & size, unsigned char * state, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
   ~Canny();
 
   image<pixelf> *	scan(image<pixelf> * in);
   bool			getEdge(edge & newedge, cordinate position, unsigned int dump);
-  void			clearDetectionState();
+  void			clearState();
   std::list<edge> *	get();
 
   // use generic image type
@@ -47,6 +47,7 @@ public:
   
 private:
   vec2		size;
+  unsigned char * detectionState;
   unsigned int	dump;
   unsigned int	minlength;
   float		tmin;
@@ -60,7 +61,6 @@ private:
   image<pixelf> * nms;
   std::list<edge> * edgeList;
   unsigned char * boundClearScan;
-  unsigned char * detectionState;
   int *		  edges;
   
   const pixelf GMx[9] = {

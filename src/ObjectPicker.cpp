@@ -13,23 +13,22 @@ ObjectPicker::ObjectPicker(vec2 size)
   : truesize(size),
     resize(0.0f),
     size((resize > 0.0f) ? size * vec2(resize, resize) : size),
+    state(new unsigned char[size.x * size.y]),
     dump(1),
     minlength(1), //10
     tmin(50),
     tmax(70),
     sigma(1.5f),
-    colorSplitDetetionRay(13),
+    colorSplitDetetionRay(17),
     maxPixelDiff(30.0f),
-    canny(new Canny(size, dump, minlength, tmin, tmax, sigma)),
-    inbw(new image<pixelf>(size)),
+    canny(Canny(size, state, dump, minlength, tmin, tmax, sigma)),
+    inbw(image<pixelf>(size)),
     lock()
 {
-
 }
 
 ObjectPicker::~ObjectPicker() {
-  delete canny;
-  delete inbw;
+  delete(state);
 }
 
 void *		ObjectPicker::detect(image<pixel16> * img) {
@@ -43,28 +42,28 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
 
   if (lastdump != diffa) {
     lastdump = diffa;
-    canny->setDump(dump + lastdump);
+    canny.setDump(dump + lastdump);
   }
   
   if (lasttmin != diffb) {
     lasttmin = diffb;
-    canny->setMinLength(minlength + lasttmin);
+    canny.setMin(tmin + lasttmin);
   }
 
   if (lasttmax != diffc) {
     lasttmax = diffc;
-    canny->setMax(tmax + lasttmax);
+    canny.setMax(tmax + lasttmax);
   }
 
   if (lastsigma != diffd) {
     lastsigma = diffd;
-    maxPixelDiff = 30.0f + lastsigma;
-    //canny->setBlur(sigma + lastsigma);
+    //maxPixelDiff = 30.0f + lastsigma;
+    canny.setBlur(sigma + lastsigma);
   }
   
   #pragma omp for
   for (int x = 0; x < (img->size.x * img->size.y); x++) {
-      inbw->pixel[x].set(img->pixel[x].get());
+      inbw.pixel[x].set(img->pixel[x].get());
   }
   /*
   if (resize > 0) {
@@ -72,21 +71,20 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
     newin = G;
     }*/
   
-  image<pixelf> * scany = canny->scan(inbw);
+  image<pixelf> * scany = canny.scan(&inbw);
+
   // if lock use lock
   objectFeature objFeature = detectCenterObjectFeature(scany, img);
 
-  //printf("feature size %lu %lu\n", objFeature.sideEdgeColor[0].size(), objFeature.sideEdgeColor[1].size());
-
   //std::list<Canny::edge> * edges = canny->get();
 
-  canny->clearDetectionState();
-  std::list<Canny::edge>   objectEdges;
-  Canny::edge newedge;
+  canny.clearState();
+  std::list<Canny::edge>	objectEdges;
+  Canny::edge			newedge;
   
   for (int i = 0; i < colorSplitDetetionRay; i++) {
     if (objFeature.maxColorSplit[i].edgePosition != 0
-	&& canny->getEdge(newedge, objFeature.maxColorSplit[i].edgePosition, dump + lastdump)
+	&& canny.getEdge(newedge, objFeature.maxColorSplit[i].edgePosition, dump + lastdump)
 	&& newedge.length > minlength) {
       objectEdges.push_front(newedge); 
     }
@@ -192,7 +190,7 @@ ObjectPicker::colorSplit		ObjectPicker::detectColorSplitFeature(image<pixelf> * 
 
 ObjectPicker::objectFeature const &	ObjectPicker::detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img) {
   static objectFeature objectFeatures(colorSplitDetetionRay);
-  const vec2 rayon(10, 0); // pixel
+  const vec2 rayon(30, 0); // pixel
   const vec2 center = scany->size / 2;
   vec2 vector;
 
