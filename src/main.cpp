@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mutex.h>
@@ -18,20 +19,22 @@
 #include "pixel16.hpp"
 #include "ObjectPicker.hpp"
 
-
+/*
 #define VIDEOWIDTH 512
 #define VIDEOHEIGHT 377
 
 #define WIDTH VIDEOWIDTH + 10
 #define HEIGHT VIDEOHEIGHT + 10
+*/
 
 float diffa = 0;
 float diffb = 0;
 float diffc = 0;
 float diffd = 0;
-image<pixel16> * img = new image<pixel16>(VIDEOWIDTH, VIDEOHEIGHT, NULL);
+vec2 size;
+image<pixel16> * img;
 
-int pause = 0;
+int setPause = 0;
 
 struct ctx
 {
@@ -79,7 +82,10 @@ void showfps()
 static void unlock(void *data, void *, void *const *p_pixels)
 {
   struct ctx *ctx = static_cast<struct ctx *>(data);
-  static ObjectPicker * objectpick = new ObjectPicker(vec2(VIDEOWIDTH, VIDEOHEIGHT));
+  static ObjectPicker * objectpick = new ObjectPicker(size);
+
+  if (p_pixels == NULL)
+    return;
   img->pixel = static_cast<pixel16 *>(*p_pixels);
   /* VLC just rendered the video, but we can also render stuff */
 
@@ -99,9 +105,6 @@ static void display(void *data, void *id)
 
 int main(int argc, char *argv[])
 {
-  libvlc_instance_t *libvlc;
-  libvlc_media_t *m;
-  libvlc_media_player_t *mp;
       char const *vlc_argv[] =
 	{
 	  //"--no-audio", /* skip any audio track */
@@ -122,43 +125,47 @@ int main(int argc, char *argv[])
 	  return EXIT_FAILURE;
 	}
 
-      /*
-       *  Initialise libSDL
-       */
-      if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTTHREAD) == -1)
-	{
-	  printf("cannot initialize SDL\n");
-	  return EXIT_FAILURE;
-	}
-
-      empty = SDL_CreateRGBSurface(SDL_SWSURFACE, VIDEOWIDTH, VIDEOHEIGHT,
-				   32, 0, 0, 0, 0);
-      ctx.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, VIDEOWIDTH, VIDEOHEIGHT,
-				      16, 0x001f, 0x07e0, 0xf800, 0);
-
-      ctx.mutex = SDL_CreateMutex();
-
-      int options = SDL_ANYFORMAT | SDL_HWSURFACE | SDL_DOUBLEBUF;
-
-      screen = SDL_SetVideoMode(WIDTH, HEIGHT, 0, options);
-      if(!screen)
-	{
-	  printf("cannot set video mode\n");
-	  return EXIT_FAILURE;
-	}
 
       /*
        *  Initialise libVLC
        */
-      libvlc = libvlc_new(vlc_argc, vlc_argv);
-      m = libvlc_media_new_path(libvlc, argv[1]);
-      mp = libvlc_media_player_new_from_media(m);
-      libvlc_media_release(m);
+      unsigned int width, height;
+      libvlc_instance_t *libvlc = libvlc_new(vlc_argc, vlc_argv);
+      libvlc_media_t *m = libvlc_media_new_path(libvlc, argv[1]);
+      libvlc_media_player_t *mp = libvlc_media_player_new_from_media(m);
 
-      libvlc_video_set_callbacks(mp, lock, unlock, display, &ctx);
-      libvlc_video_set_format(mp, "RV16", VIDEOWIDTH, VIDEOHEIGHT, VIDEOWIDTH*2);
       libvlc_media_player_play(mp);
+      while(!libvlc_media_is_parsed(m))
+	usleep(15);
+      libvlc_video_get_size(mp, 0, &width, &height);
+      img = new image<pixel16>(width, height, NULL);      
+      libvlc_media_release(m);
+      libvlc_video_set_format(mp, "RV16", width, height, width * 2);
+      libvlc_video_set_callbacks(mp, lock, unlock, display, &ctx);
+      size = vec2(width, height);
+      
+      printf("size: %d %d\n", size.x, size.y);
 
+
+      /*
+       *  Initialise libSDL
+       */
+      if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTTHREAD) == -1) {
+	printf("cannot initialize SDL\n");
+	return EXIT_FAILURE;
+      }
+      empty = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 32, 0, 0, 0, 0);
+      ctx.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 16, 0x001f, 0x07e0, 0xf800, 0);
+      ctx.mutex = SDL_CreateMutex();
+
+      int options = SDL_ANYFORMAT | SDL_HWSURFACE | SDL_DOUBLEBUF;
+
+      screen = SDL_SetVideoMode(size.x + 10, size.y + 10, 0, options);
+      if (!screen) {
+	  printf("cannot set video mode\n");
+	  return EXIT_FAILURE;
+      }
+      
       /*
        *  Main loop
        */
@@ -169,33 +176,29 @@ int main(int argc, char *argv[])
       while(!done)
 	{
 	  action = 0;
-
 	  /* Keys: enter (fullscreen), space (pause), escape (quit) */
-	  while( SDL_PollEvent( &event ) )
-	    {
-	      switch(event.type)
-		{
-		case SDL_QUIT:
-		  done = 1;
-		  break;
-		case SDL_KEYDOWN:
-		  action = event.key.keysym.sym;
-		  break;
-		}
+	  while (SDL_PollEvent(&event)) {
+	    switch(event.type) {
+	    case SDL_QUIT:
+	      done = 1;
+	      break;
+	    case SDL_KEYDOWN:
+	      action = event.key.keysym.sym;
+	      break;
 	    }
+	  }
 
-	  switch(action)
-	    {
+	  switch(action) {
 	    case SDLK_ESCAPE:
 	      done = 1;
 	      break;
 	    case SDLK_RETURN:
 	      options ^= SDL_FULLSCREEN;
-	      screen = SDL_SetVideoMode(WIDTH, HEIGHT, 0, options);
+	      screen = SDL_SetVideoMode(size.x + 10, size.y + 10, 0, options);
 	      break;
 	    case SDLK_a:
-	      pause = !pause;
-	      libvlc_media_player_set_pause(mp, pause);
+	      setPause = !setPause;
+	      libvlc_media_player_set_pause(mp, setPause);
 	      break;
 	    case SDLK_o:
 	      if (diffa + 1 < 250)
@@ -244,11 +247,7 @@ int main(int argc, char *argv[])
 	  SDL_LockMutex(ctx.mutex);
 	  SDL_BlitSurface(ctx.surf, NULL, screen, &rect);
 	  SDL_UnlockMutex(ctx.mutex);
-
 	  SDL_Flip(screen);
-	  //SDL_Delay(10);
-
-	  //SDL_BlitSurface(empty, NULL, screen, &rect);
 	}
 
       /*

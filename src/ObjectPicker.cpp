@@ -23,7 +23,8 @@ ObjectPicker::ObjectPicker(vec2 size)
     maxPixelDiff(30.0f),
     canny(Canny(size, state, dump, minlength, tmin, tmax, sigma)),
     inbw(image<pixelf>(size)),
-    lock()
+    lock(),
+    aimPosition(size / 2)
 {
 }
 
@@ -36,7 +37,7 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
   static float lasttmin = diffb;
   static float lasttmax = diffc;
   static float lastsigma = diffd;
-
+ 
   assert(img != NULL && img->pixel != NULL);
   assert(img->size == size);
 
@@ -76,36 +77,50 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
   // if lock use lock
   objectFeature objFeature = detectCenterObjectFeature(scany, img);
 
-  //std::list<Canny::edge> * edges = canny->get();
+  std::list<Canny::edge> * edges/* = canny.get()*/;
 
   canny.clearState();
   std::list<Canny::edge>	objectEdges;
   Canny::edge			newedge;
   
+  vec2 newpos;
+  int j = 0;
   for (int i = 0; i < colorSplitDetetionRay; i++) {
     if (objFeature.maxColorSplit[i].edgePosition != 0
 	&& canny.getEdge(newedge, objFeature.maxColorSplit[i].edgePosition, dump + lastdump)
 	&& newedge.length > minlength) {
       objectEdges.push_front(newedge); 
+      newpos += objFeature.maxColorSplit[i].position;
+      j++;
     }
   }
-  std::list<Canny::edge>  * edges = &objectEdges;
-  
-  for (std::list<Canny::edge>::const_iterator i = edges->begin();
-       i != edges->end();
-       ++i) {
+  if (j) {
+    //aimPosition = ((newpos / j) * 50 + aimPosition * 50) / 100;
+    aimPosition = ((newpos / j) * 25 + size / 2 * 75) / 100;
+  }
+  /*
+  for (std::list<Canny::edge>::const_iterator i = edges->begin(); i != edges->end(); ++i) {
     img->pixel[(*i).position].setrvb(0, 255, 0);
-    for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin();
-	 j != (*i).point->end();
-	 ++j) {
+    for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin(); j != (*i).point->end(); ++j) {
+    	img->pixel[(*j).position].setrvb(255, 255, 70);
+    }
+  }
+  */
+  
+  edges = &objectEdges;
+  
+  for (std::list<Canny::edge>::const_iterator i = edges->begin(); i != edges->end(); ++i) {
+    img->pixel[(*i).position].setrvb(0, 255, 0);
+    for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin(); j != (*i).point->end(); ++j) {
       /*if (isMatchingObjectFeatures(*img, objFeature, (*j).position, (*j).normal, maxPixelDiff))
 	img->pixel[(*j).position].setrvb(0, 0, 255);
 	else*/
 	img->pixel[(*j).position].setrvb(255, 0, 0);
     }
   }
+  
   for (int i = 0; i < colorSplitDetetionRay; i++) {
-    img->pixel[objFeature.maxColorSplit[i].position.to1D(img->size.x)].setrvb(0, 255, 0);
+    img->pixel[objFeature.maxColorSplit[i].position.to1D(img->size.x)].setrvb(0, 0, 255);
   }
   return NULL;
 }
@@ -190,14 +205,13 @@ ObjectPicker::colorSplit		ObjectPicker::detectColorSplitFeature(image<pixelf> * 
 
 ObjectPicker::objectFeature const &	ObjectPicker::detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img) {
   static objectFeature objectFeatures(colorSplitDetetionRay);
-  const vec2 rayon(30, 0); // pixel
-  const vec2 center = scany->size / 2;
+  const vec2 rayon(5, 0); // pixel
   vec2 vector;
 
   for (int i = 0; i < colorSplitDetetionRay; i++) {
     vector = rayon;
     vector.rotate(360.0f / float(colorSplitDetetionRay) * i);
-    LinearDisplacement line(center + vector, vector * img->size.y);
+    LinearDisplacement line(aimPosition + vector, vector * img->size.y);
     objectFeatures.maxColorSplit[i] =
       detectColorSplitFeature(scany, img, line);
   }

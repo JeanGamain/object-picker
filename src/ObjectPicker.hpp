@@ -64,7 +64,8 @@ private:
   objectFeature	lock;
   
 public:
-    const vec2   dirNormal[2][8] = {
+  vec2		aimPosition;
+  const vec2   dirNormal[2][8] = {
     {
       {-1, 1}, {-1, 0}, {-1, -1},
       {0, -1},           {0, -1},
