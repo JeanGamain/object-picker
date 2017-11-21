@@ -10,20 +10,29 @@
 
 class ObjectPicker {
 public:
-  typedef struct colorsplit_t {
-    cordinate		edgePosition;
-    vec2		position;
-    unsigned int	length;
-    pixel16		color[2];
+  typedef struct	splitInfo_t {
+    vec2	start;
+    vec2	end;
+    pixel16	sideEdgeColor;
+  }			splitInfo;
+  
+  typedef struct	colorsplit_t {
+    pixel16			color;
+    unsigned int		colorSum[3];
+    unsigned int		length;
+    std::list<splitInfo>	mainSplit;
+    std::list<splitInfo>	subSection;
   }			colorSplit;
+
+  typedef struct	colorsplitunion_t {
+    std::list<colorSplit>	all;
+  }			colorSplitUnion;
   
   typedef struct	object_feature_t {
-    std::list<pixel16>	sideEdgeColor[2];
-    colorSplit *	maxColorSplit;
-    object_feature_t() {};
+    colorSplitUnion	xraySplits;
+    /*OBJECT_feature_t() {};
     object_feature_t(int size)
-      : maxColorSplit(new colorSplit[size])
-    {}
+    : maxColorSplit(new colorSplit[size])*/
   }			objectFeature;
   
 public:
@@ -32,11 +41,20 @@ public:
 
   void *	detect(image<pixel16> * img);
 
-  bool			isMatchingObjectFeatures(image<pixel16> const & image,
-						 objectFeature const & objFeature,
-						 cordinate position, char normal, float maxDiff);
-  colorSplit		detectColorSplitFeature(image<pixelf> * scany, image<pixel16> * img,
-						LinearDisplacement & line);
+  bool		isMatchingObjectFeatures(image<pixel16> const & image,
+					 objectFeature const & objFeature,
+					 cordinate position, char normal, float maxDiff);
+
+  void		concatColorSplit(colorSplitUnion * splits,
+				 splitInfo split,
+				 pixel16 splitColor,
+				 unsigned int splitLength,
+				 unsigned int colorSum[3]);
+  void		finalizeColorSplitUnion(colorSplitUnion * splits, colorSplitUnion * lastSplits);
+  bool	        splitLenghtCompare(const colorSplit & a, const colorSplit & b);
+  void		detectColorSplitFeature(image<pixelf> * scany, image<pixel16> * img,
+					LinearDisplacement & line, colorSplitUnion * lastSplit);
+
   objectFeature const &	detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img);
  
   void		setResize(float r); 
