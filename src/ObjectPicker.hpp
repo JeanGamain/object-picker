@@ -12,12 +12,12 @@
 class ObjectPicker {
 public:
   
-  typedef struct	object_feature_t {
+  typedef struct	object_features_t {
     XrayFeatures::xrayFeatures	xraySplits;
     /*OBJECT_feature_t() {};
     object_feature_t(int size)
     : maxColorSplit(new colorSplit[size])*/
-  }			objectFeature;
+  }			objectFeatures;
   
 public:
   ObjectPicker(vec2 size);
@@ -25,13 +25,15 @@ public:
 
   void *	detect(image<pixel16> * img);
 
-  bool		isMatchingObjectFeatures(image<pixel16> const & image,
-					 objectFeature const & objFeature,
-					 cordinate position, char normal, float maxDiff);
+private:
+  objectFeatures		detectFeatures(image<pixelf> * scany,
+					       image<pixel16> * img);
+  std::list<Canny::edge>	findEdges(objectFeatures objectFeatures,
+					  image<pixel16> * img,
+					  unsigned int dump);
+  void				optimizeDetection(vec2 lastObjectPosition);
 
-
-  objectFeature const &	detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img);
- 
+public:
   void		setResize(float r); 
   float		getResize() const;
   
@@ -56,8 +58,10 @@ private:
   XrayFeatures	xrayFeaturesDetector;
   Canny		canny;
   image<pixelf>	inbw;
-  objectFeature	lock;
-  
+  objectFeatures	lock;
+
+  vec2		lastObjectPosition;
+
 public:
   const vec2   dirNormal[2][8] = {
     {

@@ -46,9 +46,9 @@ XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
   //aimPosition = ((newpos / nb) * 10 + aimPosition * 90) / 100;
-  aimPosition = (aimTargetPosition * 17 +
-		 aimPosition * 40 +
-		 originalAimPosition * 43
+  aimPosition = (aimTargetPosition * 27 +
+		 aimPosition * 50 +
+		 originalAimPosition * 23
 		 ) / 100;
 }
 void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
