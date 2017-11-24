@@ -17,6 +17,7 @@ set(${PROJECT_NAME}_src
 	./src/Canny.cpp
 	./src/Convolution.cpp
 	./src/LinearDisplacement.cpp
+	./src/XrayFeatures.cpp
 	)
 
 set(objectpicker_includes_directories

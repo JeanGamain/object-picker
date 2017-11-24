@@ -7,29 +7,13 @@
 #include "pixelf.hpp"
 #include "image.hpp"
 #include "LinearDisplacement.hpp"
+#include "XrayFeatures.hpp"
 
 class ObjectPicker {
 public:
-  typedef struct	splitInfo_t {
-    vec2	start;
-    vec2	end;
-    pixel16	sideEdgeColor;
-  }			splitInfo;
-  
-  typedef struct	colorsplit_t {
-    pixel16			color;
-    unsigned int		colorSum[3];
-    unsigned int		length;
-    std::list<splitInfo>	mainSplit;
-    std::list<splitInfo>	subSection;
-  }			colorSplit;
-
-  typedef struct	colorsplitunion_t {
-    std::list<colorSplit>	all;
-  }			colorSplitUnion;
   
   typedef struct	object_feature_t {
-    colorSplitUnion	xraySplits;
+    XrayFeatures::xrayFeatures	xraySplits;
     /*OBJECT_feature_t() {};
     object_feature_t(int size)
     : maxColorSplit(new colorSplit[size])*/
@@ -45,15 +29,6 @@ public:
 					 objectFeature const & objFeature,
 					 cordinate position, char normal, float maxDiff);
 
-  void		concatColorSplit(colorSplitUnion * splits,
-				 splitInfo split,
-				 pixel16 splitColor,
-				 unsigned int splitLength,
-				 unsigned int colorSum[3]);
-  void		finalizeColorSplitUnion(colorSplitUnion * splits, colorSplitUnion * lastSplits);
-  bool	        splitLenghtCompare(const colorSplit & a, const colorSplit & b);
-  void		detectColorSplitFeature(image<pixelf> * scany, image<pixel16> * img,
-					LinearDisplacement & line, colorSplitUnion * lastSplit);
 
   objectFeature const &	detectCenterObjectFeature(image<pixelf> * scany, image<pixel16> * img);
  
@@ -69,6 +44,7 @@ private:
   vec2	size;
   
   unsigned char * state;
+  
   const unsigned int dump;
   const unsigned int minlength;
   const float tmin;
@@ -77,12 +53,12 @@ private:
   const char  colorSplitDetetionRay;
   float	      maxPixelDiff;
   
+  XrayFeatures	xrayFeaturesDetector;
   Canny		canny;
   image<pixelf>	inbw;
   objectFeature	lock;
   
 public:
-  vec2		aimPosition;
   const vec2   dirNormal[2][8] = {
     {
       {-1, 1}, {-1, 0}, {-1, -1},
