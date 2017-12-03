@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <list>
 #include "pixelf.hpp"
+#include "pixel16.hpp"
 #include "image.hpp"
 #include "math.hpp"
 #include "Gaussian.hpp"
@@ -27,8 +28,10 @@ public:
   ~Canny();
 
   image<pixelf> *	scan(image<pixelf> * in);
-  bool			getEdge(edge & newedge, cordinate position, unsigned int dump);
-  void			clearState();
+  bool			getEdge(edge & newedge,
+				cordinate position,
+				unsigned int dump);
+    void			clearState();
   std::list<edge> *	get();
 
   // use generic image type

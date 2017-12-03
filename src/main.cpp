@@ -142,6 +142,7 @@ int main(int argc, char *argv[])
       libvlc_media_release(m);
       libvlc_video_set_format(mp, "RV16", width, height, width * 2);
       libvlc_video_set_callbacks(mp, lock, unlock, display, &ctx);
+      //libvlc_video_set_key_input(mp, 1);
       size = vec2(width, height);
       
       printf("size: %d %d\n", size.x, size.y);

@@ -18,6 +18,11 @@ public:
     object_feature_t(int size)
     : maxColorSplit(new colorSplit[size])*/
   }			objectFeatures;
+
+  typedef struct	object_edges_t {
+    std::list<Canny::edge>	outerEdges;
+    std::list<Canny::edge>	innerEdges;
+  }			objectEdges;
   
 public:
   ObjectPicker(vec2 size);
@@ -28,9 +33,10 @@ public:
 private:
   objectFeatures		detectFeatures(image<pixelf> * scany,
 					       image<pixel16> * img);
-  std::list<Canny::edge>	findEdges(objectFeatures objectFeatures,
+  objectEdges			findEdges(objectFeatures objectFeatures,
 					  image<pixel16> * img,
 					  unsigned int dump);
+  void				render(image<pixel16> * img, objectEdges edges);
   void				optimizeDetection(vec2 lastObjectPosition);
 
 public:

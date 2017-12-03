@@ -19,8 +19,7 @@ public:
     pixel16			color;
     unsigned int		colorSum[3];
     unsigned int		length;
-    std::list<splitInfo>	mainSplit;
-    std::list<splitInfo>	subSection;
+    std::list<splitInfo>	split;
   }			colorSplit;
 
   typedef struct	xrayFeatures_t {

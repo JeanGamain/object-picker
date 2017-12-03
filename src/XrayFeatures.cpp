@@ -46,10 +46,10 @@ XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
   //aimPosition = ((newpos / nb) * 10 + aimPosition * 90) / 100;
-  aimPosition = (aimTargetPosition * 27 +
+  /*  aimPosition = (aimTargetPosition * 27 +
 		 aimPosition * 50 +
 		 originalAimPosition * 23
-		 ) / 100;
+		 ) / 100;*/
 }
 void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
 						       image<pixel16> * img,
@@ -58,20 +58,17 @@ void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
   xrayFeatures	splits;
   splitInfo	split;
   pixel16	splitColor;
-  pixel16	lastSplitColor = 0;
+  vec2		pos = line.get();
+  vec2		trueEnd;
+  pixel16	lastSplitColor = img->pixel[pos.to1D(img->size.x)];
+  vec2		lastEnd = pos;
   unsigned int	colorSum[3];
   unsigned int	splitLength;
-
+  unsigned int	i;
   int nbSplit = 0; //
 
   // check first case
-  for (vec2 pos = line.get();
-       pos > vec2(0, 0) && pos < scany->size && !line.end();) {
-    split.start = pos;
-    split.sideEdgeColor = lastSplitColor;
-    while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
-	   && scany->pixel[pos.to1D(img->size.x)] >= tmax)
-      pos = line.get();
+  while (pos > vec2(0, 0) && pos < scany->size && !line.end()) {
     splitLength = 0;
     colorSum[0] = 0;
     colorSum[1] = 0;
@@ -85,14 +82,25 @@ void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
       colorSum[2] += img->pixel[pos.to1D(img->size.x)].getb();  
       img->pixel[pos.to1D(img->size.x)].pixel = uint16_t(nbSplit * 65025 / 18); //
     }
+    trueEnd = pos;
+    i = 1;
+    while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
+	   && scany->pixel[pos.to1D(img->size.x)] >= tmax) {
+      pos = line.get();
+      trueEnd += pos;
+      i++;
+    }
     // search colorSplit groupe or create new one
     if (splitLength > 0) {
       splitColor.setrvb((uint16_t)(colorSum[0] / splitLength),
 			(uint16_t)(colorSum[1] / splitLength),
 			(uint16_t)(colorSum[2] / splitLength));
-      split.end = pos;
+      split.start = lastEnd;
+      split.sideEdgeColor = lastSplitColor;
+      split.end = trueEnd / i;
       concatColorSplit(&splits, split, splitColor, splitLength, colorSum);
       lastSplitColor = splitColor;
+      lastEnd = split.end; 
       nbSplit++;
     }
   }
@@ -114,13 +122,13 @@ void	XrayFeatures::concatColorSplit(xrayFeatures * splits,
       (*i).color.setrvb((uint16_t)((*i).colorSum[0] / (*i).length),
 			(uint16_t)((*i).colorSum[1] / (*i).length),
 			(uint16_t)((*i).colorSum[2] / (*i).length));
-      (*i).subSection.push_front(split);
+      (*i).split.push_front(split);
       break;
     }
   }
   if (i == splits->all.end()) {
     colorSplit newsplit;
-    newsplit.subSection.push_front(split);
+    newsplit.split.push_front(split);
     newsplit.colorSum[0] = colorSum[0];
     newsplit.colorSum[1] = colorSum[1];
     newsplit.colorSum[2] = colorSum[2];
@@ -138,8 +146,6 @@ void	XrayFeatures::finalizeColorSplitUnion(xrayFeatures * splits,
 	 j != lastSplits->all.end() && (*i).color.diff((*j).color) > 3;
 	 ++j);
     if (j == lastSplits->all.end()) { //push on empty list them concat after search
-      (*i).mainSplit.push_front((*i).subSection.front());
-      (*i).subSection.pop_front();
       lastSplits->all.push_front((*i));
     } else {
       (*j).colorSum[0] += (*i).colorSum[0];
@@ -149,8 +155,7 @@ void	XrayFeatures::finalizeColorSplitUnion(xrayFeatures * splits,
       (*j).color.setrvb((uint16_t)((*j).colorSum[0] / (*j).length),
 			(uint16_t)((*j).colorSum[1] / (*j).length),
 			(uint16_t)((*j).colorSum[2] / (*j).length));
-      (*j).mainSplit.push_front((*i).subSection.front());
-      (*j).subSection.splice((*j).subSection.begin(), (*i).subSection, ++(*i).subSection.begin(), (*i).subSection.end());
+      (*j).split.splice((*j).split.begin(), (*i).split, (*i).split.begin(), (*i).split.end());
     }
   }
 }

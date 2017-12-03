@@ -86,14 +86,12 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
 
   omp_set_dynamic(0);
   omp_set_num_threads(omp_get_num_threads());
-  #pragma omp for
+  
   for (int x = 1; x < (size.x * size.y); x++) {
     G->pixel[x].set((float)(hypot(Gx->pixel[x].get(), Gy->pixel[x].get())));
     //G->pixel[c].set(ABS(after_Gx->pixel[c].get() + after_Gy->pixel[c].get()));
   }
   
-  // Non-maximum suppression, straightforward implementation.
-  #pragma omp for
   for (int x = 1; x < size.x - 1; x++) {
     for (int y = 1; y < size.y - 1; y++) {
       const int c = size.x * y + x;
@@ -128,7 +126,7 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
   return nms;
 }
 
-bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump) {
+bool           Canny::getEdge(edge & newedge, cordinate position, unsigned int dump) {
   unsigned int nedges;
   cordinate kdir[9];
   cordinate pos1d;
