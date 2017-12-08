@@ -9,17 +9,21 @@
 class XrayFeatures {
 
 public:
-    typedef struct	splitInfo_t {
-    vec2	start;
-    vec2	end;
-    pixel16	sideEdgeColor;
+  typedef struct	splitInfo_t {
+    vec2		pos;
+    unsigned int	length;
+    pixel16		color;
+    splitInfo_t *	prev;
+    splitInfo_t *	next;
   }			splitInfo;
   
   typedef struct	colorsplit_t {
     pixel16			color;
     unsigned int		colorSum[3];
     unsigned int		length;
-    std::list<splitInfo>	split;
+    unsigned int		nbray;
+    unsigned int		score;
+    std::list<splitInfo *>	split;
   }			colorSplit;
 
   typedef struct	xrayFeatures_t {
@@ -42,10 +46,15 @@ public:
 
   
 private:
+  void		extractFeatures();
   void		concatColorSplit(xrayFeatures * splits,
 				 splitInfo split,
 				 pixel16 splitColor,
 				 unsigned int splitLength,
+				 unsigned int colorSum[3]);
+  
+  void		concatColorSplit(xrayFeatures * splits,
+				 splitInfo * split,
 				 unsigned int colorSum[3]);
   void		finalizeColorSplitUnion(xrayFeatures * splits, xrayFeatures * lastSplits);
   bool	        splitLenghtCompare(const colorSplit & a, const colorSplit & b);

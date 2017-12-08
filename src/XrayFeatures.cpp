@@ -30,7 +30,17 @@ XrayFeatures::~XrayFeatures()
 XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
 							     image<pixel16> * img) {
   vec2		vector;
-  
+
+  for (std::list<colorSplit>::iterator i = features.all.begin();
+       i != features.all.end();
+       i++) {
+    for (std::list<splitInfo*>::iterator j = (*i).split.begin();
+	 j != (*i).split.end();
+	 j++) {
+      free((*j));
+    }
+    (*i).split.clear();
+  }
   features.all.clear();
   for (unsigned int i = 0; i < rayCount; i++) {
     vector = baseRayVector;
@@ -38,11 +48,21 @@ XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
     LinearDisplacement line(aimPosition + vector, vector * img->size.y);
     detectColorSplitFeatures(scany, img, line, &features);
   }
-  features.all.sort([](const colorSplit & a, const colorSplit & b) {
-      return (a.length > b.length);
-    });
+  extractFeatures();
   return features;
 }
+
+void	XrayFeatures::extractFeatures() {
+  for (std::list<colorSplit>::iterator i = features.all.begin();
+       i != features.all.end();
+       i++) {
+    (*i).score = (*i).length;
+  }
+  features.all.sort([](const colorSplit & a, const colorSplit & b) {
+      return (a.score > b.score);
+    });
+}
+
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
   //aimPosition = ((newpos / nb) * 10 + aimPosition * 90) / 100;
@@ -51,24 +71,32 @@ void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
 		 originalAimPosition * 23
 		 ) / 100;*/
 }
+
 void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
 						       image<pixel16> * img,
 						       LinearDisplacement & line,
 						       xrayFeatures * lastSplit) {
   xrayFeatures	splits;
-  splitInfo	split;
-  pixel16	splitColor;
+  splitInfo *	split;
   vec2		pos = line.get();
-  vec2		trueEnd;
-  pixel16	lastSplitColor = img->pixel[pos.to1D(img->size.x)];
-  vec2		lastEnd = pos;
+  vec2		truePos;
+  splitInfo *	lastNewSplit = NULL;
   unsigned int	colorSum[3];
   unsigned int	splitLength;
-  unsigned int	i;
+  int		i;
   int nbSplit = 0; //
 
-  // check first case
+  // go to first edge
   while (pos > vec2(0, 0) && pos < scany->size && !line.end()) {
+    truePos = pos;
+    i = 1;
+    do {
+      pos = line.get();
+      truePos += pos;
+      i++;
+    } while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
+	     && scany->pixel[pos.to1D(img->size.x)] >= tmax); 
+    truePos /= i;
     splitLength = 0;
     colorSum[0] = 0;
     colorSum[1] = 0;
@@ -82,25 +110,23 @@ void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
       colorSum[2] += img->pixel[pos.to1D(img->size.x)].getb();  
       img->pixel[pos.to1D(img->size.x)].pixel = uint16_t(nbSplit * 65025 / 18); //
     }
-    trueEnd = pos;
-    i = 1;
-    while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
-	   && scany->pixel[pos.to1D(img->size.x)] >= tmax) {
-      pos = line.get();
-      trueEnd += pos;
-      i++;
-    }
     // search colorSplit groupe or create new one
     if (splitLength > 0) {
-      splitColor.setrvb((uint16_t)(colorSum[0] / splitLength),
-			(uint16_t)(colorSum[1] / splitLength),
-			(uint16_t)(colorSum[2] / splitLength));
-      split.start = lastEnd;
-      split.sideEdgeColor = lastSplitColor;
-      split.end = trueEnd / i;
-      concatColorSplit(&splits, split, splitColor, splitLength, colorSum);
-      lastSplitColor = splitColor;
-      lastEnd = split.end; 
+      split = (splitInfo*)malloc(sizeof(splitInfo));
+      split->length = splitLength;
+      split->color.setrvb((uint16_t)(colorSum[0] / splitLength),
+			  (uint16_t)(colorSum[1] / splitLength),
+			  (uint16_t)(colorSum[2] / splitLength));
+      if (lastNewSplit != NULL) {
+	lastNewSplit->next = split;
+        split->prev = lastNewSplit;
+      } else {
+	split->prev = NULL;
+      }
+      lastNewSplit = split;
+      split->next = NULL;
+      split->pos = truePos;
+      concatColorSplit(&splits, split, colorSum);
       nbSplit++;
     }
   }
@@ -108,54 +134,72 @@ void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
 }
 
 void	XrayFeatures::concatColorSplit(xrayFeatures * splits,
-				       splitInfo split,
-				       pixel16	splitColor,
-				       unsigned int splitLength,
+				       splitInfo * split,
 				       unsigned int colorSum[3]) {
-  std::list<colorSplit>::iterator i;
-  for (i = splits->all.begin(); i != splits->all.end(); ++i) {
-    if ((*i).color.diff(splitColor) < 3) {
-      (*i).colorSum[0] += colorSum[0];
-      (*i).colorSum[1] += colorSum[1];
-      (*i).colorSum[2] += colorSum[2];
-      (*i).length += splitLength;
-      (*i).color.setrvb((uint16_t)((*i).colorSum[0] / (*i).length),
-			(uint16_t)((*i).colorSum[1] / (*i).length),
-			(uint16_t)((*i).colorSum[2] / (*i).length));
-      (*i).split.push_front(split);
-      break;
+  std::list<colorSplit>::iterator bestSplit = splits->all.end();
+  float	bestDiff = 6;
+  float	diff;
+  
+  for (std::list<colorSplit>::iterator i = splits->all.begin();
+       i != splits->all.end(); ++i) {
+    diff = (*i).color.diff(split->color);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestSplit = i;
     }
   }
-  if (i == splits->all.end()) {
+  if (bestSplit == splits->all.end()) { // new
     colorSplit newsplit;
     newsplit.split.push_front(split);
     newsplit.colorSum[0] = colorSum[0];
     newsplit.colorSum[1] = colorSum[1];
     newsplit.colorSum[2] = colorSum[2];
-    newsplit.length = splitLength;
-    newsplit.color = splitColor;	
+    newsplit.length = split->length;
+    newsplit.color = split->color;	
     splits->all.push_front(newsplit);
+  } else { // concat
+    (*bestSplit).colorSum[0] += colorSum[0];
+    (*bestSplit).colorSum[1] += colorSum[1];
+    (*bestSplit).colorSum[2] += colorSum[2];
+    (*bestSplit).length += split->length;
+    (*bestSplit).color.setrvb((uint16_t)((*bestSplit).colorSum[0] / (*bestSplit).length),
+			      (uint16_t)((*bestSplit).colorSum[1] / (*bestSplit).length),
+			      (uint16_t)((*bestSplit).colorSum[2] / (*bestSplit).length));
+    (*bestSplit).split.push_front(split);
   }
 }
 
 void	XrayFeatures::finalizeColorSplitUnion(xrayFeatures * splits,
 					      xrayFeatures * lastSplits) {
-  for (std::list<colorSplit>::iterator i = splits->all.begin(); i != splits->all.end(); ++i) {
-    std::list<colorSplit>::iterator j;
-    for (j = lastSplits->all.begin();
-	 j != lastSplits->all.end() && (*i).color.diff((*j).color) > 3;
-	 ++j);
-    if (j == lastSplits->all.end()) { //push on empty list them concat after search
+  std::list<colorSplit>::iterator bestSplit;
+  float	bestDiff = 6;
+  float	diff;
+ 
+  for (std::list<colorSplit>::iterator i = splits->all.begin();
+       i != splits->all.end(); ++i) {
+    bestSplit = lastSplits->all.end();
+    for (std::list<colorSplit>::iterator j = lastSplits->all.begin();
+	 j != lastSplits->all.end(); ++j) {
+      diff = (*i).color.diff((*j).color);
+      if (diff < bestDiff) {
+	bestDiff = diff;
+	bestSplit = j;
+      }
+    }
+    if (bestSplit == lastSplits->all.end()) { //push on empty list them concat after search
+      (*i).nbray = 1;
       lastSplits->all.push_front((*i));
     } else {
-      (*j).colorSum[0] += (*i).colorSum[0];
-      (*j).colorSum[1] += (*i).colorSum[1];
-      (*j).colorSum[2] += (*i).colorSum[2];
-      (*j).length += (*i).length;
-      (*j).color.setrvb((uint16_t)((*j).colorSum[0] / (*j).length),
-			(uint16_t)((*j).colorSum[1] / (*j).length),
-			(uint16_t)((*j).colorSum[2] / (*j).length));
-      (*j).split.splice((*j).split.begin(), (*i).split, (*i).split.begin(), (*i).split.end());
+      (*bestSplit).nbray++;
+      (*bestSplit).colorSum[0] += (*i).colorSum[0];
+      (*bestSplit).colorSum[1] += (*i).colorSum[1];
+      (*bestSplit).colorSum[2] += (*i).colorSum[2];
+      (*bestSplit).length += (*i).length;
+      (*bestSplit).color.setrvb((uint16_t)((*bestSplit).colorSum[0] / (*bestSplit).length),
+				(uint16_t)((*bestSplit).colorSum[1] / (*bestSplit).length),
+				(uint16_t)((*bestSplit).colorSum[2] / (*bestSplit).length));
+      (*bestSplit).split.splice((*bestSplit).split.begin(),
+				(*i).split, (*i).split.begin(), (*i).split.end());
     }
   }
 }

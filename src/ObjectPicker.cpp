@@ -117,13 +117,15 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(objectFeatures objectFeatures,
   int		nb = 0;
 
   canny.clearState();
-  for (unsigned int i = 0; i < 1 && objectFeatures.xraySplits.all.size() > 0; i++) {
+  for (unsigned int i = 0; i < 10 && objectFeatures.xraySplits.all.size() > 0; i++) {
     XrayFeatures::colorSplit split = objectFeatures.xraySplits.all.front();
-    for (std::list<XrayFeatures::splitInfo>::const_iterator j = split.split.begin();
+    for (std::list<XrayFeatures::splitInfo *>::const_iterator j = split.split.begin();
 	 j != split.split.end(); ++j) {
-      if (canny.getEdge(newedge, (*j).start.to1D(img->size.x), mydump)
+      if (canny.getEdge(newedge, (*j)->pos.to1D(img->size.x), mydump)
 	  && newedge.length > minlength) {
+	newPosition += (*j)->pos;
 	edges.outerEdges.push_front(newedge); 
+	nb++;
       }
     }
     objectFeatures.xraySplits.all.pop_front();
@@ -136,14 +138,16 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(objectFeatures objectFeatures,
 }
 
 void				ObjectPicker::render(image<pixel16> * img, objectEdges edges) {
+  int g = 0;
   // outer
   for (std::list<Canny::edge>::const_iterator i = edges.outerEdges.begin();
        i != edges.outerEdges.end(); ++i) {
-    img->pixel[(*i).position].setrvb(0, 255, 0);
     for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end(); ++j) {
-      img->pixel[(*j).position].setrvb(255, 0, 0);
+      img->pixel[(*j).position] = uint16_t(g * (65025 / edges.outerEdges.size()));
     }
+    img->pixel[(*i).position].setrvb(255, 0, 0);
+    g++;
   }
   // inner
   for (std::list<Canny::edge>::const_iterator i = edges.innerEdges.begin();
