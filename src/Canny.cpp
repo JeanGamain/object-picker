@@ -14,7 +14,10 @@
 #include "math.hpp"
 
 #include "pixel16.hpp"
+#include "parm.hpp"
 extern image<pixel16> * img;
+extern varSet vaParm[24];
+extern int maxParm;
 
 Canny::Canny(vec2 const & size,
 	     unsigned char * state,
@@ -55,6 +58,11 @@ Canny::Canny(vec2 const & size,
   // Reuse array
   edges = (int*)Gx->pixel;
   edgeList = new std::list<edge>();
+
+  static float maxMin = 1, maxMax = 30, maxStep = 0.1;
+  vaParm[maxParm++] = (varSet){ &maxMin, &maxMax, &maxStep, &tmax, "canny max", FLOAT };
+  static float minMin = 1, minMax = 30, minStep = 0.1;
+  vaParm[maxParm++] = (varSet){ &minMin, &minMax, &minStep, &tmin, "canny min", FLOAT };
 }
 
 Canny::~Canny() {

@@ -5,6 +5,7 @@
 #include "LinearDisplacement.hpp"
 #include "pixel16.hpp"
 #include "vec2.hpp"
+#include "vec2f.hpp"
 
 class XrayFeatures {
 
@@ -67,11 +68,12 @@ private:
   xrayFeatures		features;
   unsigned int		rayCount;
   unsigned int		rayAimWidth;
-  vec2			baseRayVector;
+  vec2f			baseRayVector;
   vec2			aimPosition;
   vec2			originalAimPosition;
   float			tmin;
   float			tmax;
+  float			maxDiff;
 };
 
 #endif /* !XRAYFEATURES_HPP_ */

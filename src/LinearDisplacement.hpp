@@ -1,11 +1,11 @@
 #ifndef LINEARDISPLACEMENT_HPP_
 # define LINEARDISPLACEMENT_HPP_
 
-#include "math.hpp"
+#include "vec2f.hpp"
 
 class LinearDisplacement {
 public:
-  LinearDisplacement(vec2 const & a, vec2 const & b);
+  LinearDisplacement(vec2f const & a, vec2f const & b);
   virtual ~LinearDisplacement();
   
   bool	end();
@@ -15,9 +15,9 @@ public:
 private:
   int	i[3];
   int	cumul;
-  vec2	vr[3];
-  vec2	e;
-  vec2	position;
+  vec2f	vr[3];
+  vec2f	e;
+  vec2f	position;
 };
 
 #endif /* !LINEARDISPLACEMENT */

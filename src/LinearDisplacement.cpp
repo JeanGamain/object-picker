@@ -1,6 +1,6 @@
 #include "LinearDisplacement.hpp"
 
-LinearDisplacement::LinearDisplacement(vec2 const & a, vec2 const & b)
+LinearDisplacement::LinearDisplacement(vec2f const & a, vec2f const & b)
   : e(b), position(a)
 {
   vr[1] = a;
@@ -37,8 +37,8 @@ void	LinearDisplacement::goNext()
 
 vec2	LinearDisplacement::get()
 {
-  vec2 next = vr[1];
+  vec2f next = vr[1];
   if (!end())
     goNext();
-  return next;
+  return next.asDec();
 }

@@ -18,19 +18,11 @@
 #include "image.hpp"
 #include "pixel16.hpp"
 #include "ObjectPicker.hpp"
+#include "parm.hpp"
 
-/*
-#define VIDEOWIDTH 512
-#define VIDEOHEIGHT 377
+varSet	vaParm[24];
+int	maxParm = 0;
 
-#define WIDTH VIDEOWIDTH + 10
-#define HEIGHT VIDEOHEIGHT + 10
-*/
-
-float diffa = 0;
-float diffb = 0;
-float diffc = 0;
-float diffd = 0;
 vec2 size;
 image<pixel16> * img;
 
@@ -101,6 +93,72 @@ static void display(void *data, void *id)
   /* VLC wants to display the video */
   (void) data;
   assert(id == NULL);
+}
+
+
+int		vaParmI = 0;
+void		ChangevaParm(char add) {
+  int		i = vaParmI;
+
+  if (maxParm == 0)
+    return;
+  if (vaParm[i].type == UINT) {
+    if (add) {
+      if (*(unsigned int*)(vaParm[i].value) + *(unsigned int*)(vaParm[i].step) <= *(unsigned int*)(vaParm[i].max)) {
+	*((unsigned int*)(vaParm[i].value)) += *((unsigned int*)(vaParm[i].step));
+	printf("%s: %u +\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
+      } else
+	printf("%s: %u MAX\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
+    } else {
+      if (*(unsigned int*)(vaParm[i].value) - *(unsigned int*)(vaParm[i].step) >= *(unsigned int*)(vaParm[i].min)) {
+	*((unsigned int*)(vaParm[i].value)) -= *((unsigned int*)(vaParm[i].step));
+	printf("%s: %u -\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
+      } else
+	printf("%s: %u MIN\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
+    }
+  } else if (vaParm[i].type == INT) {
+    if (add) {
+      if (*(int*)(vaParm[i].value) + *(int*)(vaParm[i].step) <= *(int*)(vaParm[i].max)) {
+	*((int*)(vaParm[i].value)) += *((int*)(vaParm[i].step));
+	printf("%s: %d +\n", vaParm[i].name, *(int*)(vaParm[i].value));
+      } else
+	printf("%s: %d MAX\n", vaParm[i].name, *(int*)(vaParm[i].value));
+    } else {
+      if (*(int*)(vaParm[i].value) - *(int*)(vaParm[i].step) >= *(int*)(vaParm[i].min)) {
+	*((int*)(vaParm[i].value)) -= *((int*)(vaParm[i].step));
+	printf("%s: %d -\n", vaParm[i].name, *(int*)(vaParm[i].value));
+      } else
+	printf("%s: %d MIN\n", vaParm[i].name, *(int*)(vaParm[i].value));
+    }
+  } else if (vaParm[i].type == FLOAT) {
+      if (add) {
+	if (*(float*)(vaParm[i].value) + *(float*)(vaParm[i].step) <= *(float*)(vaParm[i].max)) {
+	  *((float*)(vaParm[i].value)) += *((float*)(vaParm[i].step));
+	  printf("%s: %f +\n", vaParm[i].name, *((float*)(vaParm[i].value)));
+	} else
+	  printf("%s: %f MAX\n", vaParm[i].name, *((float*)(vaParm[i].value)));
+      } else {
+	if (*(float*)(vaParm[i].value) - *(float*)(vaParm[i].step) >= *(float*)(vaParm[i].min)) {
+	  *((float*)(vaParm[i].value)) -= *((float*)(vaParm[i].step));
+	  printf("%s: %f -\n", vaParm[i].name, *((float*)(vaParm[i].value)));
+	} else
+	  printf("%s: %f MIN\n", vaParm[i].name, *((float*)(vaParm[i].value)));
+      }
+  } else if (vaParm[i].type == DOUBLE) {
+    if (add) {
+      if (*(double*)(vaParm[i].value) + *(double*)(vaParm[i].step) <= *(double*)(vaParm[i].max)) {
+	*((double*)(vaParm[i].value)) += *((double*)(vaParm[i].step));
+	printf("%s: %f +\n", vaParm[i].name, *((double*)(vaParm[i].value)));
+      } else
+	printf("%s: %f MAX\n", vaParm[i].name, *((double*)(vaParm[i].value)));
+    } else {
+      if (*(double*)(vaParm[i].value) - *(double*)(vaParm[i].step) >= *(double*)(vaParm[i].min)) {
+	*((double*)(vaParm[i].value)) -= *((double*)(vaParm[i].step));
+	printf("%s: %f -\n", vaParm[i].name, *((double*)(vaParm[i].value)));
+      } else
+	printf("%s: %f MIN\n", vaParm[i].name, *((double*)(vaParm[i].value)));
+    }
+  }
 }
 
 int main(int argc, char *argv[])
@@ -201,45 +259,25 @@ int main(int argc, char *argv[])
 	      setPause = !setPause;
 	      libvlc_media_player_set_pause(mp, setPause);
 	      break;
+	    case SDLK_u:
+	      if (vaParmI + 1 >= maxParm)
+		vaParmI = 0;
+	      else
+		vaParmI++;
+	      printf("parm: %s\n", vaParm[vaParmI].name);
+	      break;
+	    case SDLK_i:
+	      if (vaParmI - 1 < 0)
+		vaParmI = maxParm - 1;
+	      else
+		vaParmI--;
+	      printf("parm: %s\n", vaParm[vaParmI].name);
+	      break;
 	    case SDLK_o:
-	      if (diffa + 1 < 250)
-		diffa += 1;
-	      printf("a+ at %f\n", diffa);
+	      ChangevaParm(1);
 	      break;
 	    case SDLK_p:
-	      if (diffa - 1 > -200)
-		diffa -= 1;
-	      printf("a- at %f\n", diffa);	      
-	      break;
-	    case SDLK_j:
-	      if (diffb + 1 < 250)
-		diffb += 1;
-	      printf("b+ at %f\n", diffb);
-	      break;
-	    case SDLK_k:
-	      if (diffb - 1 > -200)
-		diffb -= 1;
-	      printf("b- at %f\n", diffb);	      
-	      break;
-	    case SDLK_b:
-	      if (diffc + 0.01 < 250)
-		diffc += 0.01;
-	      printf("c+ at %f\n", diffc);
-	      break;
-	    case SDLK_n:
-	      if (diffc - 0.01 > -200)
-		diffc -= 0.01;
-	      printf("c- at %f\n", diffc);
-	      break;
-	    case SDLK_q:
-	      if (diffd + 0.01 < 40)
-		diffd += 0.01;
-	      printf("d+ at %f\n", diffd);
-	      break;
-	    case SDLK_s:
-	      if (diffd - 0.01 > -40)
-		diffd -= 0.01;
-	      printf("d- at %f\n", diffd);
+	      ChangevaParm(0);
 	      break;
 	    }
 

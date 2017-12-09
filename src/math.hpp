@@ -102,8 +102,4 @@
 
 typedef int32_t	cordinate;
 
-#include "vec2.hpp"
-#include "vec3.hpp"
-#include "vec4.hpp"
-
 #endif /* MATH_HPP_ */

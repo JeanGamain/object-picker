@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
-#include "math.hpp"
+#include "vec2.hpp"
 #include "pixelf.hpp"
 #include "pixel16.hpp"
 #include <stdio.h>

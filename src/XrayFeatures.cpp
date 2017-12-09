@@ -3,10 +3,15 @@
 #include <iterator>
 #include "XrayFeatures.hpp"
 #include "vec2.hpp"
+#include "vec2f.hpp"
 #include "image.hpp"
 #include "pixelf.hpp"
 #include "pixel16.hpp"
 #include "LinearDisplacement.hpp"
+
+#include "parm.hpp"
+extern varSet vaParm[24];
+extern int maxParm;
 
 XrayFeatures::XrayFeatures(vec2 aimTargetPositon,
 			   float min, float max,
@@ -14,13 +19,28 @@ XrayFeatures::XrayFeatures(vec2 aimTargetPositon,
 			   unsigned int xrayaimwidth)
   : rayCount(rayc),
     rayAimWidth(xrayaimwidth),
-    baseRayVector(vec2(xrayaimwidth, 0)),
+    baseRayVector(vec2f(xrayaimwidth, 0)),
     aimPosition(aimTargetPositon),
     originalAimPosition(aimTargetPositon),
     tmin(min),
-    tmax(max)
+    tmax(max),
+    maxDiff(9)
 {
   assert(xrayaimwidth > 4);
+  static unsigned int MinRCount = 1, MaxRCount = 100, StepRCount = 1;
+  vaParm[maxParm++] = (varSet){ &MinRCount, &MaxRCount, &StepRCount, &rayCount, "rayCount", UINT };
+  //static unsigned int MinAimW = 1, MaxAimW = 200, StepAimW = 1;
+  //vaParm[maxParm++] = (varSet){ &MinAimW, &MaxAimW, &StepAimW, &rayAimWidth, "aim width", UINT };
+  static unsigned int MinPx = 10, MaxPx = 3000, StepPx = 1;
+  vaParm[maxParm++] = (varSet){ &MinPx, &MaxPx, &StepPx, &aimPosition.x, "aim position X", UINT };
+  static unsigned int MinPy = 10, MaxPy = 3000, StepPy = 1;
+  vaParm[maxParm++] = (varSet){ &MinPy, &MaxPy, &StepPy, &aimPosition.y, "aim position Y", UINT };
+  static float MinMax = 0, MaxMax = 300, StepMax = 0.1;
+  vaParm[maxParm++] = (varSet){ &MinMax, &MaxMax, &StepMax, &tmax, "Xray max", FLOAT };
+  static float MinMin = 0, MaxMin = 300, StepMin = 0.1;
+  vaParm[maxParm++] = (varSet){ &MinMin, &MaxMin, &StepMin, &tmin, "Xray min", FLOAT };
+  static float MinDiff = 1, MaxDiff = 90, StepDiff = 0.1;
+  vaParm[maxParm++] = (varSet){ &MinDiff, &MaxDiff, &StepDiff, &maxDiff, "Xray diff", FLOAT };
 }
 
 XrayFeatures::~XrayFeatures()
@@ -29,7 +49,7 @@ XrayFeatures::~XrayFeatures()
 
 XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
 							     image<pixel16> * img) {
-  vec2		vector;
+  vec2f		vector;
 
   for (std::list<colorSplit>::iterator i = features.all.begin();
        i != features.all.end();
@@ -45,7 +65,7 @@ XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
   for (unsigned int i = 0; i < rayCount; i++) {
     vector = baseRayVector;
     vector.rotate(360.0f / float(rayCount) * i);
-    LinearDisplacement line(aimPosition + vector, vector * img->size.y);
+    LinearDisplacement line(vec2f(aimPosition.x, aimPosition.y) + vector, vector * img->size.y);
     detectColorSplitFeatures(scany, img, line, &features);
   }
   extractFeatures();
@@ -137,7 +157,7 @@ void	XrayFeatures::concatColorSplit(xrayFeatures * splits,
 				       splitInfo * split,
 				       unsigned int colorSum[3]) {
   std::list<colorSplit>::iterator bestSplit = splits->all.end();
-  float	bestDiff = 6;
+  float	bestDiff = maxDiff;
   float	diff;
   
   for (std::list<colorSplit>::iterator i = splits->all.begin();
@@ -172,7 +192,7 @@ void	XrayFeatures::concatColorSplit(xrayFeatures * splits,
 void	XrayFeatures::finalizeColorSplitUnion(xrayFeatures * splits,
 					      xrayFeatures * lastSplits) {
   std::list<colorSplit>::iterator bestSplit;
-  float	bestDiff = 6;
+  float	bestDiff = maxDiff;
   float	diff;
  
   for (std::list<colorSplit>::iterator i = splits->all.begin();

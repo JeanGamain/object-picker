@@ -4,10 +4,9 @@
 #include "LinearDisplacement.hpp"
 #include "ObjectPicker.hpp"
 
-extern float diffa;
-extern float diffb;
-extern float diffc;
-extern float diffd;
+#include "parm.hpp"
+extern varSet vaParm[24];
+extern int maxParm;
 
 ObjectPicker::ObjectPicker(vec2 size)
   : truesize(size),
@@ -26,6 +25,12 @@ ObjectPicker::ObjectPicker(vec2 size)
     inbw(image<pixelf>(size)),
     lock()
 {
+  static float blurMin = 0, blurMax = 30, blurStep = 0.1;
+  vaParm[maxParm++] = (varSet){ &blurMin, &blurMax, &blurStep, &sigma, "canny blur", FLOAT };
+
+  static unsigned int dumpMin = 1, dumpMax = 30, dumpStep = 1;
+  vaParm[maxParm++] = (varSet){ &dumpMin, &dumpMax, &dumpStep, &dump, "canny dump", UINT };
+  
 }
 
 ObjectPicker::~ObjectPicker() {
@@ -33,36 +38,15 @@ ObjectPicker::~ObjectPicker() {
 }
 
 void *		ObjectPicker::detect(image<pixel16> * img) {
-  static float lastdump = diffa;
-  static float lasttmin = diffb;
-  static float lasttmax = diffc;
-  static float lastsigma = diffd;
- 
+
+  static float	lastsigma;
+  if (lastsigma != sigma) {
+    lastsigma = sigma;
+    canny.setBlur(sigma);
+  }
+
   assert(img != NULL && img->pixel != NULL);
   assert(img->size == size);
-
-  if (lastdump != diffa) {
-    lastdump = diffa;
-    canny.setDump(dump + lastdump);
-  }
-  
-  if (lasttmin != diffb) {
-    lasttmin = diffb;
-    canny.setMin(tmin + lasttmin);
-    xrayFeaturesDetector.setMin(tmin + lasttmin);
-  }
-
-  if (lasttmax != diffc) {
-    lasttmax = diffc;
-    canny.setMax(tmax + lasttmax);
-    xrayFeaturesDetector.setMax(tmax + lasttmax);
-  }
-
-  if (lastsigma != diffd) {
-    lastsigma = diffd;
-    //maxPixelDiff = 30.0f + lastsigma;
-    canny.setBlur(sigma + lastsigma);
-  }
   
   #pragma omp for
   for (int x = 0; x < (img->size.x * img->size.y); x++) {
@@ -78,7 +62,7 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
 
   // if lock use lock
   objectFeatures objectFeatures = detectFeatures(scany, img);
-  objectEdges edges = findEdges(objectFeatures, img, dump + lastdump);
+  objectEdges edges = findEdges(objectFeatures, img, dump);
 
   render(img, edges);
   optimizeDetection(lastObjectPosition);
