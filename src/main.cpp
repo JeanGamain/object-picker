@@ -132,13 +132,13 @@ void		ChangevaParm(char add) {
     }
   } else if (vaParm[i].type == FLOAT) {
       if (add) {
-	if (*(float*)(vaParm[i].value) + *(float*)(vaParm[i].step) <= *(float*)(vaParm[i].max)) {
+	if (*((float*)(vaParm[i].value)) + *((float*)(vaParm[i].step)) <= *(float*)(vaParm[i].max)) {
 	  *((float*)(vaParm[i].value)) += *((float*)(vaParm[i].step));
 	  printf("%s: %f +\n", vaParm[i].name, *((float*)(vaParm[i].value)));
 	} else
 	  printf("%s: %f MAX\n", vaParm[i].name, *((float*)(vaParm[i].value)));
       } else {
-	if (*(float*)(vaParm[i].value) - *(float*)(vaParm[i].step) >= *(float*)(vaParm[i].min)) {
+	if (*((float*)(vaParm[i].value)) - *((float*)(vaParm[i].step)) >= *(float*)(vaParm[i].min)) {
 	  *((float*)(vaParm[i].value)) -= *((float*)(vaParm[i].step));
 	  printf("%s: %f -\n", vaParm[i].name, *((float*)(vaParm[i].value)));
 	} else

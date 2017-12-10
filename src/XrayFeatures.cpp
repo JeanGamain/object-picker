@@ -35,9 +35,9 @@ XrayFeatures::XrayFeatures(vec2 aimTargetPositon,
   vaParm[maxParm++] = (varSet){ &MinPx, &MaxPx, &StepPx, &aimPosition.x, "aim position X", UINT };
   static unsigned int MinPy = 10, MaxPy = 3000, StepPy = 1;
   vaParm[maxParm++] = (varSet){ &MinPy, &MaxPy, &StepPy, &aimPosition.y, "aim position Y", UINT };
-  static float MinMax = 0, MaxMax = 300, StepMax = 0.1;
+  static float MinMax = 0, MaxMax = 300, StepMax = 1;
   vaParm[maxParm++] = (varSet){ &MinMax, &MaxMax, &StepMax, &tmax, "Xray max", FLOAT };
-  static float MinMin = 0, MaxMin = 300, StepMin = 0.1;
+  static float MinMin = 0, MaxMin = 300, StepMin = 1;
   vaParm[maxParm++] = (varSet){ &MinMin, &MaxMin, &StepMin, &tmin, "Xray min", FLOAT };
   static float MinDiff = 1, MaxDiff = 90, StepDiff = 0.1;
   vaParm[maxParm++] = (varSet){ &MinDiff, &MaxDiff, &StepDiff, &maxDiff, "Xray diff", FLOAT };
@@ -115,8 +115,9 @@ void		XrayFeatures::detectColorSplitFeatures(image<pixelf> * scany,
       truePos += pos;
       i++;
     } while (pos > vec2(0, 0) && pos < scany->size && !line.end() // jump edge
-	     && scany->pixel[pos.to1D(img->size.x)] >= tmax); 
+	     && scany->pixel[pos.to1D(img->size.x)] >= tmin); 
     truePos /= i;
+    
     splitLength = 0;
     colorSum[0] = 0;
     colorSum[1] = 0;
@@ -206,7 +207,7 @@ void	XrayFeatures::finalizeColorSplitUnion(xrayFeatures * splits,
 	bestSplit = j;
       }
     }
-    if (bestSplit == lastSplits->all.end()) { //push on empty list them concat after search
+    if (bestSplit == lastSplits->all.end()) {
       (*i).nbray = 1;
       lastSplits->all.push_front((*i));
     } else {

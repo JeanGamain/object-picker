@@ -59,10 +59,10 @@ Canny::Canny(vec2 const & size,
   edges = (int*)Gx->pixel;
   edgeList = new std::list<edge>();
 
-  static float maxMin = 1, maxMax = 30, maxStep = 0.1;
-  vaParm[maxParm++] = (varSet){ &maxMin, &maxMax, &maxStep, &tmax, "canny max", FLOAT };
-  static float minMin = 1, minMax = 30, minStep = 0.1;
-  vaParm[maxParm++] = (varSet){ &minMin, &minMax, &minStep, &tmin, "canny min", FLOAT };
+  static float maxMin = 1, maxMax = 200, maxStep = 1;
+  vaParm[maxParm++] = (varSet){ &maxMin, &maxMax, &maxStep, &this->tmax, "canny max", FLOAT };
+  static float minMin = 1, minMax = 200, minStep = 1;
+  vaParm[maxParm++] = (varSet){ &minMin, &minMax, &minStep, &this->tmin, "canny min", FLOAT };
 }
 
 Canny::~Canny() {
@@ -134,14 +134,14 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
   return nms;
 }
 
-bool           Canny::getEdge(edge & newedge, cordinate position, unsigned int dump) {
-  unsigned int nedges;
-  cordinate kdir[9];
-  cordinate pos1d;
+bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump) {
+  unsigned int	nedges;
+  cordinate	kdir[9];
+  cordinate	pos1d;
 
-  if (nms->pixel[position] < tmax || detectionState[position] > 0)
+  // nms->pixel[position] < tmax ||
+  if (detectionState[position] > 0)
     return false;
- 
   nedges = 1;
   newedge.position = position;
   newedge.length = 1;
@@ -152,7 +152,7 @@ bool           Canny::getEdge(edge & newedge, cordinate position, unsigned int d
   do {
     kdir[8] = edges[--nedges];
     kdir[0] = kdir[8] + size.x;
-    kdir[1] = kdir[8] - size.y;
+    kdir[1] = kdir[8] - size.x;
     kdir[2] = kdir[8] + 1;
     kdir[3] = kdir[8] - 1;
     kdir[4] = kdir[0] + 1;

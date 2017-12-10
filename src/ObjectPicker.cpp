@@ -25,12 +25,14 @@ ObjectPicker::ObjectPicker(vec2 size)
     inbw(image<pixelf>(size)),
     lock()
 {
-  static float blurMin = 0, blurMax = 30, blurStep = 0.1;
+  static float blurMin = 0, blurMax = 30, blurStep = 0.01;
   vaParm[maxParm++] = (varSet){ &blurMin, &blurMax, &blurStep, &sigma, "canny blur", FLOAT };
 
   static unsigned int dumpMin = 1, dumpMax = 30, dumpStep = 1;
   vaParm[maxParm++] = (varSet){ &dumpMin, &dumpMax, &dumpStep, &dump, "canny dump", UINT };
-  
+
+  static unsigned int lMin = 1, lMax = 200, lStep = 1;
+  vaParm[maxParm++] = (varSet){ &lMin, &lMax, &lStep, &minlength, "min length", UINT };
 }
 
 ObjectPicker::~ObjectPicker() {
@@ -101,7 +103,7 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(objectFeatures objectFeatures,
   int		nb = 0;
 
   canny.clearState();
-  for (unsigned int i = 0; i < 10 && objectFeatures.xraySplits.all.size() > 0; i++) {
+  for (unsigned int i = 0; i < 1 && objectFeatures.xraySplits.all.size() > 0; i++) {
     XrayFeatures::colorSplit split = objectFeatures.xraySplits.all.front();
     for (std::list<XrayFeatures::splitInfo *>::const_iterator j = split.split.begin();
 	 j != split.split.end(); ++j) {
@@ -128,9 +130,9 @@ void				ObjectPicker::render(image<pixel16> * img, objectEdges edges) {
        i != edges.outerEdges.end(); ++i) {
     for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end(); ++j) {
-      img->pixel[(*j).position] = uint16_t(g * (65025 / edges.outerEdges.size()));
+      img->pixel[(*j).position].setrvb(120, 10, 120);
     }
-    img->pixel[(*i).position].setrvb(255, 0, 0);
+    img->pixel[(*i).position].setrvb(0, 255, 0);
     g++;
   }
   // inner
