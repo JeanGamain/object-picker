@@ -6,7 +6,7 @@
 
 // http://www.songho.ca/dsp/cannyedge/cannyedge.html
 
-Gaussian::Gaussian(const vec2 n, const float sigma)
+Gaussian::Gaussian(vec2 const & n, const float sigma)
   : size(n),
     ksize(2 * (int)(2 * sigma) + 3),
     mean((float)floor(ksize / 2.0)),

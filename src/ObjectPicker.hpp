@@ -13,7 +13,7 @@ class ObjectPicker {
 public:
   
   typedef struct	object_features_t {
-    XrayFeatures::xrayFeatures	xraySplits;
+    XrayFeatures::xrayFeatures	xray;
     /*OBJECT_feature_t() {};
     object_feature_t(int size)
     : maxColorSplit(new colorSplit[size])*/
@@ -33,7 +33,7 @@ public:
 private:
   objectFeatures		detectFeatures(image<pixelf> * scany,
 					       image<pixel16> * img);
-  objectEdges			findEdges(objectFeatures objectFeatures,
+  objectEdges			findEdges(objectFeatures const & objectFeatures,
 					  image<pixel16> * img,
 					  unsigned int dump);
   void				render(image<pixel16> * img, objectEdges edges);

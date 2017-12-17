@@ -30,8 +30,8 @@ int setPause = 0;
 
 struct ctx
 {
-  SDL_Surface *surf;
-  SDL_mutex *mutex;
+  SDL_Surface *surf = NULL;
+  SDL_mutex *mutex = NULL;
 };
 
 static void *lock(void *data, void **p_pixels)
@@ -39,6 +39,8 @@ static void *lock(void *data, void **p_pixels)
   struct ctx *ctx = static_cast<struct ctx*>(data);
 
   SDL_LockMutex(ctx->mutex);
+  while (ctx->surf == NULL)
+    usleep(10);
   SDL_LockSurface(ctx->surf);
   *p_pixels = ctx->surf->pixels;
   return NULL; /* picture identifier, not needed here */
@@ -48,10 +50,11 @@ void showfps()
 {
   static double lasttime = 0;
   static unsigned int nbframe = 0;
-  static double maxfps = 0;
+  static double fpsSum = 0;
+  static unsigned int fpsCount = 0;
   struct timeval tv;
   double curtime;
-  double fps;
+  double fps, fpsmoy;
 
   gettimeofday(&tv, NULL);
   curtime = double(tv.tv_sec) + double(tv.tv_usec) / 1000000;
@@ -61,11 +64,12 @@ void showfps()
   if ((fps = curtime - lasttime) > 1)
     {
       fps = nbframe / fps;
-      if (maxfps < fps)
-	maxfps = fps;
+      fpsSum += fps;
+      fpsCount++;
       lasttime = curtime;
       nbframe = 0;
-      printf("%.01f fps - %.01f max\n", fps, maxfps);
+      fpsmoy = fpsSum / fpsCount;
+      printf("%.01f fps - %.01f moy - %.01fms\n", fps, fpsmoy, (24.8 - fpsmoy) * 40.322);
     }
   else
     nbframe++;
@@ -76,8 +80,6 @@ static void unlock(void *data, void *, void *const *p_pixels)
   struct ctx *ctx = static_cast<struct ctx *>(data);
   static ObjectPicker * objectpick = new ObjectPicker(size);
 
-  if (p_pixels == NULL)
-    return;
   img->pixel = static_cast<pixel16 *>(*p_pixels);
   /* VLC just rendered the video, but we can also render stuff */
 
@@ -90,8 +92,8 @@ static void unlock(void *data, void *, void *const *p_pixels)
 
 static void display(void *data, void *id)
 {
+  (void)data;
   /* VLC wants to display the video */
-  (void) data;
   assert(id == NULL);
 }
 
@@ -170,7 +172,7 @@ int main(int argc, char *argv[])
 	};
       int vlc_argc = sizeof(vlc_argv) / sizeof(*vlc_argv);
 
-      SDL_Surface *screen, *empty;
+      SDL_Surface *screen;
       SDL_Event event;
       SDL_Rect rect;
       int done = 0, action = 0;
@@ -183,7 +185,7 @@ int main(int argc, char *argv[])
 	  return EXIT_FAILURE;
 	}
 
-
+      ctx.mutex = SDL_CreateMutex();
       /*
        *  Initialise libVLC
        */
@@ -213,9 +215,7 @@ int main(int argc, char *argv[])
 	printf("cannot initialize SDL\n");
 	return EXIT_FAILURE;
       }
-      empty = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 32, 0, 0, 0, 0);
       ctx.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 16, 0x001f, 0x07e0, 0xf800, 0);
-      ctx.mutex = SDL_CreateMutex();
 
       int options = SDL_ANYFORMAT | SDL_HWSURFACE | SDL_DOUBLEBUF;
 
@@ -301,7 +301,6 @@ int main(int argc, char *argv[])
        */
       SDL_DestroyMutex(ctx.mutex);
       SDL_FreeSurface(ctx.surf);
-      SDL_FreeSurface(empty);
 
       SDL_Quit();
 

@@ -157,22 +157,22 @@ struct vec2f
     return *this;
   }
 
-  bool		operator<(const vec2f b) const
+  bool		operator<(vec2f const & b) const
   {
     return (x < b.x && y < b.y);
   }
   
-  bool		operator>(const vec2f b) const
+  bool		operator>(vec2f const & b) const
   {
     return (x > b.x && y > b.y);
   }
   
-  bool		operator<=(const vec2f b) const
+  bool		operator<=(vec2f const & b) const
   {
     return (x <= b.x || y <= b.y);
   }
   
-  bool		operator>=(const vec2f b) const
+  bool		operator>=(vec2f const & b) const
   {
     return (x >= b.x || y >= b.y);
   }

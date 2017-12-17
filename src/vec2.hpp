@@ -156,22 +156,22 @@ struct vec2
     return *this;
   }
 
-  bool		operator<(const vec2 b) const
+  bool		operator<(vec2 const & b) const
   {
     return (x < b.x && y < b.y);
   }
   
-  bool		operator>(const vec2 b) const
+  bool		operator>(vec2 const & b) const
   {
     return (x > b.x && y > b.y);
   }
   
-  bool		operator<=(const vec2 b) const
+  bool		operator<=(vec2 const & b) const
   {
     return (x <= b.x || y <= b.y);
   }
   
-  bool		operator>=(const vec2 b) const
+  bool		operator>=(vec2 const & b) const
   {
     return (x >= b.x || y >= b.y);
   }

@@ -7,7 +7,7 @@
 
 void convolution(const pixelf *in, pixelf *out,
 		   const pixelf *kernel, const int ksize,
-		   const vec2 n)
+		   vec2 const & n)
 {
   assert(ksize % 2 == 1);
   assert(n.x > ksize && n.y > ksize);

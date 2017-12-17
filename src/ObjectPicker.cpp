@@ -14,7 +14,7 @@ ObjectPicker::ObjectPicker(vec2 size)
     size((resize > 0.0f) ? size * vec2(resize, resize) : size),
     state(new unsigned char[size.x * size.y]),
     dump(1),
-    minlength(1), //10
+    minlength(28),
     tmin(50),
     tmax(70),
     sigma(1.5f),
@@ -41,7 +41,7 @@ ObjectPicker::~ObjectPicker() {
 
 void *		ObjectPicker::detect(image<pixel16> * img) {
 
-  static float	lastsigma;
+  static float	lastsigma = sigma;
   if (lastsigma != sigma) {
     lastsigma = sigma;
     canny.setBlur(sigma);
@@ -49,8 +49,7 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
 
   assert(img != NULL && img->pixel != NULL);
   assert(img->size == size);
-  
-  #pragma omp for
+
   for (int x = 0; x < (img->size.x * img->size.y); x++) {
       inbw.pixel[x].set(img->pixel[x].get());
   }
@@ -68,7 +67,6 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
 
   render(img, edges);
   optimizeDetection(lastObjectPosition);
-
   /*
   for (std::list<Canny::edge>::const_iterator i = edges->begin(); i != edges->end(); ++i) {
     img->pixel[(*i).position].setrvb(0, 255, 0);
@@ -90,11 +88,11 @@ ObjectPicker::objectFeatures	ObjectPicker::detectFeatures(image<pixelf> * scany,
 							     image<pixel16> * img) {
   objectFeatures	features;
 
-  features.xraySplits = xrayFeaturesDetector.detect(scany, img);
+  features.xray = xrayFeaturesDetector.detect(scany, img);
   return features;
 }
 
-ObjectPicker::objectEdges	ObjectPicker::findEdges(objectFeatures objectFeatures,
+ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & features,
 							image<pixel16> * img,
 							unsigned int mydump) {
   objectEdges	edges;
@@ -103,18 +101,14 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(objectFeatures objectFeatures,
   int		nb = 0;
 
   canny.clearState();
-  for (unsigned int i = 0; i < 1 && objectFeatures.xraySplits.all.size() > 0; i++) {
-    XrayFeatures::colorSplit split = objectFeatures.xraySplits.all.front();
-    for (std::list<XrayFeatures::splitInfo *>::const_iterator j = split.split.begin();
-	 j != split.split.end(); ++j) {
-      if (canny.getEdge(newedge, (*j)->pos.to1D(img->size.x), mydump)
-	  && newedge.length > minlength) {
-	newPosition += (*j)->pos;
-	edges.outerEdges.push_front(newedge); 
-	nb++;
-      }
+  for (std::list<XrayFeatures::edgePoint2d>::const_iterator i = features.xray.edges.begin();
+       i != features.xray.edges.end(); i++) {
+    if (canny.getEdge(newedge, (*i).position.to1D(img->size.x), mydump)
+	&& newedge.length > minlength) {
+      newPosition += (*i).position;
+      edges.outerEdges.push_front(newedge); 
+      nb++;
     }
-    objectFeatures.xraySplits.all.pop_front();
   }
 
   if (nb > 0) {

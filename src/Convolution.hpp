@@ -7,6 +7,6 @@
 
 void convolution(const pixelf *in, pixelf *out,
 		 const pixelf *kernel, const int kn,
-		 const vec2 n);
+		 vec2 const & n);
 
 #endif /* !CONVOLUTION_HPP_ */

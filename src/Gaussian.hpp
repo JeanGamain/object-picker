@@ -6,7 +6,7 @@
 
 class Gaussian {
 public:
-  Gaussian(const vec2 n, const float sigma);
+  Gaussian(vec2 const & n, const float sigma);
   ~Gaussian();
   
   void filter(const pixelf *in, pixelf *out);

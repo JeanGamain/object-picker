@@ -50,6 +50,8 @@ public:
   }
   
   image &	operator=(const image & i) {
+    if (i == this)
+      return this;
     if (i.size == size) {
       memcpy(pixel, i.pixel, sizeof(T) * size.x * size.y);
     } else {

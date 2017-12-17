@@ -108,7 +108,7 @@ public:
   void clearColor() {
     this->pixel = 0;
   }
-
+  /*
   void setComponent(int i, char c) {
     void (pixel16::*setCptr[3])(char) = { // make const
       &pixel16::setr,
@@ -138,7 +138,7 @@ public:
     };
     // check i;
     (this->*clrCptr[i])();
-  }
+    }*/
 
   npixel get() const {
     /*

@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <cmath>
 #include <list>
-#include <omp.h>
 #include "pixelf.hpp"
 #include "Convolution.hpp"
 #include "Gaussian.hpp"
@@ -91,15 +90,12 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
   
   convolution(newin->pixel, Gx->pixel, GMx, 3, size);
   convolution(newin->pixel, Gy->pixel, GMy, 3, size);
-
-  omp_set_dynamic(0);
-  omp_set_num_threads(omp_get_num_threads());
   
   for (int x = 1; x < (size.x * size.y); x++) {
     G->pixel[x].set((float)(hypot(Gx->pixel[x].get(), Gy->pixel[x].get())));
     //G->pixel[c].set(ABS(after_Gx->pixel[c].get() + after_Gy->pixel[c].get()));
   }
-  
+
   for (int x = 1; x < size.x - 1; x++) {
     for (int y = 1; y < size.y - 1; y++) {
       const int c = size.x * y + x;
