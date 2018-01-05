@@ -19,7 +19,7 @@ ObjectPicker::ObjectPicker(vec2 size)
     tmax(70),
     sigma(1.5f),
     colorSplitDetetionRay(17),
-    maxPixelDiff(30.0f),
+    maxPixelDiff(10.0f),
     xrayFeaturesDetector(size / 2, tmin, tmax, colorSplitDetetionRay),
     canny(Canny(size, state, dump, minlength, tmin, tmax, sigma)),
     inbw(image<pixelf>(size)),
@@ -33,6 +33,9 @@ ObjectPicker::ObjectPicker(vec2 size)
 
   static unsigned int lMin = 1, lMax = 200, lStep = 1;
   vaParm[maxParm++] = (varSet){ &lMin, &lMax, &lStep, &minlength, "min length", UINT };
+
+  static float mpdMin = 0, mpdMax = 40, mpdStep = 1;
+  vaParm[maxParm++] = (varSet){ &mpdMin, &mpdMax, &mpdStep, &maxPixelDiff, "canny maxPixelDiff", FLOAT };
 }
 
 ObjectPicker::~ObjectPicker() {
@@ -98,19 +101,28 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & feature
   objectEdges	edges;
   Canny::edge	newedge;
   vec2		newPosition = 0;
+  vec2		pos;
   int		nb = 0;
 
   canny.clearState();
   for (std::list<XrayFeatures::edgePoint2d>::const_iterator i = features.xray.edges.begin();
        i != features.xray.edges.end(); i++) {
-    if (canny.getEdge(newedge, (*i).position.to1D(img->size.x), mydump)
+    if (canny.getEdge(newedge, (*i).position.to1D(img->size.x), mydump, features.xray, *img, maxPixelDiff, (*i).normal)
 	&& newedge.length > minlength) {
       newPosition += (*i).position;
       edges.outerEdges.push_front(newedge); 
       nb++;
     }
   }
-
+  /*
+  for (pos.x = features.xray.edgesAABB[0].x; pos.x <= features.xray.edgesAABB[1].x; pos.x += 2) {
+    for (pos.y = features.xray.edgesAABB[0].y; pos.y <= features.xray.edgesAABB[1].y; pos.y += 2) {
+      if (canny.getEdge(newedge, pos.to1D(img->size.x), mydump, features, img, maxPixelDiff, )
+	  && newedge.length > minlength) {
+	edges.innerEdges.push_front(newedge);
+      }
+    }
+    }*/
   if (nb > 0) {
     lastObjectPosition = newPosition / nb;
   }

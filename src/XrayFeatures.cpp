@@ -59,6 +59,13 @@ XrayFeatures::XrayFeatures(vec2 aimTargetPositon,
 
   static float MinDiff = 1, MaxDiff = 90, StepDiff = 0.1;
   vaParm[maxParm++] = (varSet){ &MinDiff, &MaxDiff, &StepDiff, &maxDiff, "Xray diff", FLOAT };
+
+  static float MinBackGT = 1, MaxBackGT = 90, StepBackGT = 0.2;
+  vaParm[maxParm++] = (varSet){ &MinBackGT, &MaxBackGT, &StepBackGT, &maxBackGThreshold, "maxBackGThreshold", FLOAT };
+  static float MinObjCT = 1, MaxObjCT = 90, StepObjCT = 0.2;
+  vaParm[maxParm++] = (varSet){ &MinObjCT, &MaxObjCT, &StepObjCT, &maxObjCThreshold, "maxObjCThreshold", FLOAT };
+  static float MinEndSpMalus = 1, MaxEndSpMalus = 2, StepEndSpMalus = 0.1;
+  vaParm[maxParm++] = (varSet){ &MinEndSpMalus, &MaxEndSpMalus, &StepEndSpMalus, &endSplitMalus, "EndSpMalus", FLOAT };
 }
 
 XrayFeatures::~XrayFeatures()
@@ -166,11 +173,24 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::searchObjectColors(
 void			XrayFeatures::searchObjectEdges(std::list<colorSplit> & objSplit,
 					  std::list<colorSplit>::iterator & lastBestObjectSplit) {
   features.edges.clear();
+  
+  features.edgesAABB[0] = vec2(INT_MAX, INT_MAX);
+  features.edgesAABB[1] = vec2(INT_MIN, INT_MIN);
   for (std::list<colorSplit>::iterator j = objSplit.begin(); j != lastBestObjectSplit; j++) {
     for (std::list<splitInfo>::iterator k = (*j).split.begin(); k != (*j).split.end(); k++) {
       // (start + end) / 2
       //if ((aimPosition - (*i).pos).length * ((*i).start ? 1 : endSplitMalus) > )
       features.edges.push_front({ (*k).pos, (*k).start });
+      if (features.edgesAABB[0].x > (*k).pos.x) {
+	features.edgesAABB[0].x = (*k).pos.x;
+      } else if (features.edgesAABB[0].y > (*k).pos.y) {
+	features.edgesAABB[0].y = (*k).pos.y;
+      }
+      if (features.edgesAABB[1].x < (*k).pos.x) {
+	features.edgesAABB[1].x = (*k).pos.x;
+      } else if (features.edgesAABB[1].y < (*k).pos.y) {
+	features.edgesAABB[1].y = (*k).pos.y;
+      }      
     }
   }
 }
@@ -198,13 +218,12 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
     scoreSum += (*i).score;
     score = scoreSum / ++count;
   }
-  //printf("pos %f\n", count);
   return i;
 }
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
-  (void)aimTargetPosition;
-  /*aimPosition = (aimTargetPosition * aimRatio[0] +
+  //(void)aimTargetPosition;
+  /*  aimPosition = (aimTargetPosition * aimRatio[0] +
 		 aimPosition * aimRatio[1] +
 		 originalAimPosition * aimRatio[2]
 		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);*/

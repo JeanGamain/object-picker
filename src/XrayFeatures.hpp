@@ -7,7 +7,6 @@
 #include "pixel16.hpp"
 #include "vec2.hpp"
 #include "vec2f.hpp"
-#include "Canny.hpp"
 
 class XrayFeatures {
 
@@ -41,6 +40,7 @@ public:
     std::list<pixel16>		backgroundColor;
     std::list<pixel16>		objectColor;
     std::list<edgePoint2d>	edges;
+    vec2			edgesAABB[2];
   }			xrayFeatures;
 
 

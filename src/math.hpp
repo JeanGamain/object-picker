@@ -74,8 +74,11 @@
 #endif
 
 #define FMAX FLT_MAX
-
 #define NFMAX -FLT_MAX
+
+#define INT_MIN -2147483648
+#define INT_MAX 2147483647
+
 
 #ifndef RAD
 #define	RAD(a) (M_PI * (a) / 180.0)
