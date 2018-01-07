@@ -7,7 +7,7 @@
 #include "vec2f.hpp"
 #include "image.hpp"
 #include "pixelf.hpp"
-#include "pixel16.hpp"
+#include "pixel.hpp"
 #include "LinearDisplacement.hpp"
 
 #include "parm.hpp"
@@ -73,7 +73,7 @@ XrayFeatures::~XrayFeatures()
 }
 
 XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
-							     image<pixel16> * img) {
+							     image<pixel> * img) {
   std::list<colorSplit>			xraySplit;
   std::list<colorSplit>			raySplit[rayCount];
 
@@ -90,7 +90,7 @@ XrayFeatures::xrayFeatures const &	XrayFeatures::detect(image<pixelf> * scany,
   return features;
 }
 
-void	XrayFeatures::extractFeatures(std::list<colorSplit> & xraySplit, image<pixel16> * img) {
+void	XrayFeatures::extractFeatures(std::list<colorSplit> & xraySplit, image<pixel> * img) {
   // background color
   std::list<colorSplit>::iterator lastBestBackground =
     searchBackGroundColors(xraySplit, img);
@@ -104,12 +104,12 @@ void	XrayFeatures::extractFeatures(std::list<colorSplit> & xraySplit, image<pixe
   //printf("size bg %lu, objc %lu, edges %lu\n", features.backgroundColor.size(), features.objectColor.size(), features.edges.size());
   // xray start from front edges
   // refonte image<x> * to &
-  // refonte pixel16 pixel
+  // refonte pixel pixel
   // refonte rgba32
 }
 
 std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::searchBackGroundColors(std::list<colorSplit> & xraySplit,
-											     image<pixel16> * img) {
+											     image<pixel> * img) {
   features.backgroundColor.clear();
   for (std::list<colorSplit>::iterator i = xraySplit.begin(); i != xraySplit.end(); i++) {
     if ((*i).nbray >= minRayPerBackG)
@@ -121,7 +121,7 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::searchBackGroundCol
 }
 
 std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::searchObjectColors(std::list<colorSplit> & xraySplit,
-											 image<pixel16> * img,
+											 image<pixel> * img,
 											 std::list<colorSplit> & objSplit,
 											 std::list<colorSplit>::iterator & lastBestBackground) {
   unsigned int		colorSum[3];
@@ -196,7 +196,7 @@ void			XrayFeatures::searchObjectEdges(std::list<colorSplit> & objSplit,
 }
 
 std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThresholdSelection(std::list<colorSplit> & splits,
-										   std::list<pixel16> & colorOutput,
+										   std::list<pixel> & colorOutput,
 										   float threshold) {
   std::list<colorSplit>::iterator i;
   float	score;
@@ -223,14 +223,14 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
   //(void)aimTargetPosition;
-  /*  aimPosition = (aimTargetPosition * aimRatio[0] +
+  aimPosition = (aimTargetPosition * aimRatio[0] +
 		 aimPosition * aimRatio[1] +
 		 originalAimPosition * aimRatio[2]
-		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);*/
+		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);
 }
 
 void		XrayFeatures::detectColorSplit(image<pixelf> * scany,
-					       image<pixel16> * img,
+					       image<pixel> * img,
 					       LinearDisplacement & line,
 					       std::list<colorSplit> & splits,
 					       unsigned int rayId) {
@@ -267,16 +267,16 @@ void		XrayFeatures::detectColorSplit(image<pixelf> * scany,
       splitLength++;
       colorSum[0] += img->pixel[pos.to1D(img->size.x)].getr();
       colorSum[1] += img->pixel[pos.to1D(img->size.x)].getv();
-      colorSum[2] += img->pixel[pos.to1D(img->size.x)].getb();  
-      img->pixel[pos.to1D(img->size.x)].pixel = uint16_t(nbSplit * 65025 / 18); //
+      colorSum[2] += img->pixel[pos.to1D(img->size.x)].getb();
+      img->pixel[pos.to1D(img->size.x)].set((uint16_t)(255 / 18 * nbSplit)); //
     }
     // search colorSplit groupe or create new one
     if (splitLength > 0) {
       split.start = false;
       split.length = splitLength;
-      split.color.setrvb((uint16_t)(colorSum[0] / splitLength),
-			 (uint16_t)(colorSum[1] / splitLength),
-			 (uint16_t)(colorSum[2] / splitLength));
+      split.color.setrvb((uint8_t)(colorSum[0] / splitLength),
+			 (uint8_t)(colorSum[1] / splitLength),
+			 (uint8_t)(colorSum[2] / splitLength));
       split.prev = (lastNewSplit != NULL) ? lastNewSplit : NULL;
       split.next = NULL;
       split.pos = truePos;
@@ -319,9 +319,9 @@ XrayFeatures::splitInfo *		XrayFeatures::concatColorSplit(std::list<colorSplit> 
   (*bestSplit).colorSum[1] += colorSum[1];
   (*bestSplit).colorSum[2] += colorSum[2];
   (*bestSplit).length += split.length;
-  (*bestSplit).color.setrvb((uint16_t)((*bestSplit).colorSum[0] / (*bestSplit).length),
-			    (uint16_t)((*bestSplit).colorSum[1] / (*bestSplit).length),
-			    (uint16_t)((*bestSplit).colorSum[2] / (*bestSplit).length));
+  (*bestSplit).color.setrvb((uint8_t)((*bestSplit).colorSum[0] / (*bestSplit).length),
+			    (uint8_t)((*bestSplit).colorSum[1] / (*bestSplit).length),
+			    (uint8_t)((*bestSplit).colorSum[2] / (*bestSplit).length));
   (*bestSplit).split.push_front(split);
   return &(*(*bestSplit).split.begin());
 }
@@ -352,9 +352,9 @@ void	XrayFeatures::finalizeColorSplitUnion(std::list<colorSplit> & splits,
       (*bestSplit).colorSum[1] += (*i).colorSum[1];
       (*bestSplit).colorSum[2] += (*i).colorSum[2];
       (*bestSplit).length += (*i).length;
-      (*bestSplit).color.setrvb((uint16_t)((*bestSplit).colorSum[0] / (*bestSplit).length),
-				(uint16_t)((*bestSplit).colorSum[1] / (*bestSplit).length),
-				(uint16_t)((*bestSplit).colorSum[2] / (*bestSplit).length));
+      (*bestSplit).color.setrvb((uint8_t)((*bestSplit).colorSum[0] / (*bestSplit).length),
+				(uint8_t)((*bestSplit).colorSum[1] / (*bestSplit).length),
+				(uint8_t)((*bestSplit).colorSum[2] / (*bestSplit).length));
       (*bestSplit).split.splice((*bestSplit).split.begin(),
 				(*i).split, (*i).split.begin(), (*i).split.end());
     }

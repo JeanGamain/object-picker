@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <list>
 #include <iterator>
+#include "pixel.hpp"
 #include "LinearDisplacement.hpp"
 #include "ObjectPicker.hpp"
 
@@ -42,7 +43,7 @@ ObjectPicker::~ObjectPicker() {
   delete(state);
 }
 
-void *		ObjectPicker::detect(image<pixel16> * img) {
+void *		ObjectPicker::detect(image<pixel> * img) {
 
   static float	lastsigma = sigma;
   if (lastsigma != sigma) {
@@ -53,6 +54,7 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
   assert(img != NULL && img->pixel != NULL);
   assert(img->size == size);
 
+  #pragma omp parallel for
   for (int x = 0; x < (img->size.x * img->size.y); x++) {
       inbw.pixel[x].set(img->pixel[x].get());
   }
@@ -88,7 +90,7 @@ void *		ObjectPicker::detect(image<pixel16> * img) {
 }
 
 ObjectPicker::objectFeatures	ObjectPicker::detectFeatures(image<pixelf> * scany,
-							     image<pixel16> * img) {
+							     image<pixel> * img) {
   objectFeatures	features;
 
   features.xray = xrayFeaturesDetector.detect(scany, img);
@@ -96,7 +98,7 @@ ObjectPicker::objectFeatures	ObjectPicker::detectFeatures(image<pixelf> * scany,
 }
 
 ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & features,
-							image<pixel16> * img,
+							image<pixel> * img,
 							unsigned int mydump) {
   objectEdges	edges;
   Canny::edge	newedge;
@@ -129,14 +131,14 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & feature
   return edges;
 }
 
-void				ObjectPicker::render(image<pixel16> * img, objectEdges edges) {
+void				ObjectPicker::render(image<pixel> * img, objectEdges edges) {
   int g = 0;
   // outer
   for (std::list<Canny::edge>::const_iterator i = edges.outerEdges.begin();
        i != edges.outerEdges.end(); ++i) {
     for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end(); ++j) {
-      img->pixel[(*j).position].setrvb(120, 10, 120);
+      img->pixel[(*j).position].setrvb(255, 0, 0);
     }
     img->pixel[(*i).position].setrvb(0, 255, 0);
     g++;

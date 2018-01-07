@@ -1,10 +1,9 @@
 #ifndef CANNY_HPP_
 # define CANNY_HPP_
 
-#include <stdint.h>
 #include <list>
 #include "pixelf.hpp"
-#include "pixel16.hpp"
+#include "pixel.hpp"
 #include "image.hpp"
 #include "math.hpp"
 #include "XrayFeatures.hpp"
@@ -33,7 +32,7 @@ public:
 				cordinate position,
 				unsigned int dump,
 				XrayFeatures::xrayFeatures const & features,
-				image<pixel16> const & image,
+				image<pixel> const & image,
 				float maxPixelDiff,
 				bool start);
   void			clearState();

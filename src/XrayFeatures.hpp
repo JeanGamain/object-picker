@@ -4,7 +4,7 @@
 #include <stack>
 #include "image.hpp"
 #include "LinearDisplacement.hpp"
-#include "pixel16.hpp"
+#include "pixel.hpp"
 #include "vec2.hpp"
 #include "vec2f.hpp"
 
@@ -14,7 +14,7 @@ public:
   typedef struct	splitInfo_t {
     vec2		pos;
     unsigned int	length;
-    pixel16		color;
+    pixel		color;
     bool		start;
     unsigned short	rayId;
     splitInfo_t *	prev;
@@ -22,7 +22,7 @@ public:
   }			splitInfo;
   
   typedef struct	colorsplit_t {
-    pixel16			color;
+    pixel			color;
     unsigned int		colorSum[3];
     unsigned int		length;
     unsigned int		nbray;
@@ -37,8 +37,8 @@ public:
  
   
   typedef struct	xrayFeatures_t {
-    std::list<pixel16>		backgroundColor;
-    std::list<pixel16>		objectColor;
+    std::list<pixel>		backgroundColor;
+    std::list<pixel>		objectColor;
     std::list<edgePoint2d>	edges;
     vec2			edgesAABB[2];
   }			xrayFeatures;
@@ -51,7 +51,7 @@ public:
 	       unsigned int xrayaimwidth = 5);
   ~XrayFeatures();
   
-  xrayFeatures const &	detect(image<pixelf> * scany, image<pixel16> * img);
+  xrayFeatures const &	detect(image<pixelf> * scany, image<pixel> * img);
   void			aimTarget(vec2 aimTargetPosition);
   void			setMin(float min);
   void			setMax(float max);
@@ -59,21 +59,21 @@ public:
 
   
 private:
-  void			extractFeatures(std::list<colorSplit> & xraySplit, image<pixel16> * img);
+  void			extractFeatures(std::list<colorSplit> & xraySplit, image<pixel> * img);
 
   std::list<colorSplit>::iterator	searchBackGroundColors(std::list<colorSplit> & xraySplit,
-							       image<pixel16> * img);
+							       image<pixel> * img);
   std::list<colorSplit>::iterator	searchObjectColors(std::list<colorSplit> & xraySplit,
-							   image<pixel16> * img,
+							   image<pixel> * img,
 							   std::list<colorSplit> & objSplit,
 							   std::list<colorSplit>::iterator & lastBestBackground);
   void					searchObjectEdges(std::list<colorSplit> & objSplit,
 							  std::list<colorSplit>::iterator & lastBestObjectSplit);
   std::list<colorSplit>::iterator	splitScoreThresholdSelection(std::list<colorSplit> & splits,
-								     std::list<pixel16> & colorOutput,
+								     std::list<pixel> & colorOutput,
 								     float threshold);
   void		detectColorSplit(image<pixelf> * scany,
-				 image<pixel16> * img,
+				 image<pixel> * img,
 				 LinearDisplacement & line,
 				 std::list<colorSplit> & splits,
 				 unsigned int rayId);  

@@ -1,7 +1,3 @@
-/* libSDL and libVLC sample code
- * Copyright © 2008 Sam Hocevar <sam@zoy.org>
- * license: [http://en.wikipedia.org/wiki/WTFPL WTFPL] */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -12,11 +8,12 @@
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mutex.h>
+#include <SDL/SDL_opengl.h>
 
 #include <vlc/vlc.h>
 
 #include "image.hpp"
-#include "pixel16.hpp"
+#include "pixel.hpp"
 #include "ObjectPicker.hpp"
 #include "parm.hpp"
 
@@ -24,7 +21,7 @@ varSet	vaParm[24];
 int	maxParm = 0;
 
 vec2 size;
-image<pixel16> * img;
+image<pixel> * img;
 
 int setPause = 0;
 
@@ -79,12 +76,11 @@ static void unlock(void *data, void *, void *const *p_pixels)
 {
   struct ctx *ctx = static_cast<struct ctx *>(data);
   static ObjectPicker * objectpick = new ObjectPicker(size);
-
-  img->pixel = static_cast<pixel16 *>(*p_pixels);
-  /* VLC just rendered the video, but we can also render stuff */
+  
+  img->pixel = static_cast<pixel *>(*p_pixels);
 
   objectpick->detect(img);
-  
+
   showfps();
   SDL_UnlockSurface(ctx->surf);
   SDL_UnlockMutex(ctx->mutex);
@@ -198,12 +194,13 @@ int main(int argc, char *argv[])
       while(!libvlc_media_is_parsed(m))
 	usleep(15);
       libvlc_video_get_size(mp, 0, &width, &height);
-      img = new image<pixel16>(width, height, NULL);      
+      img = new image<pixel>(width, height, NULL);
       libvlc_media_release(m);
-      libvlc_video_set_format(mp, "RV16", width, height, width * 2);
+      //libvlc_video_set_format(mp, "RV16", width, height, width * 2);
+      libvlc_video_set_format(mp, "RGBA", width, height, width * 4);
+      size = vec2(width, height);
       libvlc_video_set_callbacks(mp, lock, unlock, display, &ctx);
       //libvlc_video_set_key_input(mp, 1);
-      size = vec2(width, height);
       
       printf("size: %d %d\n", size.x, size.y);
 
@@ -215,8 +212,17 @@ int main(int argc, char *argv[])
 	printf("cannot initialize SDL\n");
 	return EXIT_FAILURE;
       }
-      ctx.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 16, 0x001f, 0x07e0, 0xf800, 0);
+      //ctx.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 16, 0x001f, 0x07e0, 0xf800, 0);
 
+      /* SDL interprets each pixel as a 32-bit number, so our masks must depend
+	 on the endianness (byte order) of the machine */
+      #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+      uint32_t mask[4] = { 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff };
+      #else
+      uint32_t mask[4] = { 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 };
+      #endif
+
+      ctx.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 32, mask[0], mask[1], mask[2], mask[3]);
       int options = SDL_ANYFORMAT | SDL_HWSURFACE | SDL_DOUBLEBUF;
 
       screen = SDL_SetVideoMode(size.x + 10, size.y + 10, 0, options);

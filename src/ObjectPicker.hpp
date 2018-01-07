@@ -3,7 +3,7 @@
 
 #include "Canny.hpp"
 #include "vec2.hpp"
-#include "pixel16.hpp"
+#include "pixel.hpp"
 #include "pixelf.hpp"
 #include "image.hpp"
 #include "LinearDisplacement.hpp"
@@ -28,15 +28,15 @@ public:
   ObjectPicker(vec2 size);
   ~ObjectPicker();
 
-  void *	detect(image<pixel16> * img);
+  void *	detect(image<pixel> * img);
 
 private:
   objectFeatures		detectFeatures(image<pixelf> * scany,
-					       image<pixel16> * img);
+					       image<pixel> * img);
   objectEdges			findEdges(objectFeatures const & objectFeatures,
-					  image<pixel16> * img,
+					  image<pixel> * img,
 					  unsigned int dump);
-  void				render(image<pixel16> * img, objectEdges edges);
+  void				render(image<pixel> * img, objectEdges edges);
   void				optimizeDetection(vec2 lastObjectPosition);
 
 public:

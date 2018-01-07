@@ -50,13 +50,15 @@ public:
   }
   
   image &	operator=(const image & i) {
-    if (i == this)
+    if (&i == this)
       return this;
     if (i.size == size) {
       memcpy(pixel, i.pixel, sizeof(T) * size.x * size.y);
     } else {
       size = i.size;
+      T* freep = pixel;
       pixel = (T*)realloc(pixel, sizeof(T) * size.x * size.y);
+      free(freep);
       memcpy(pixel, i.pixel, size.x * size.y);
     }
     return *this;

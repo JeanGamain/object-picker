@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "math.h"
+#include "math.hpp"
 #include "Convolution.hpp"
 #include "Canny.hpp"
 #include "pixelf.hpp"

@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include "vec2.hpp"
 #include "pixelf.hpp"
-#include "pixel16.hpp"
+#include "pixel.hpp"
 #include <stdio.h>
 
 void convolution(const pixelf *in, pixelf *out,
-		   const pixelf *kernel, const int ksize,
-		   vec2 const & n)
+		 const pixelf *kernel, const int ksize,
+		 vec2 const & n)
 {
   assert(ksize % 2 == 1);
   assert(n.x > ksize && n.y > ksize);
