@@ -15,7 +15,7 @@ struct pixelrgba
   typedef union pixel_rgba_u {
     uint32_t		val;
     uint8_t		c[4];
-    pixel_rgba_u(unsigned int v)
+    pixel_rgba_u(uint32_t v)
       : val(v)
     {};
     pixel_rgba_u(uint8_t *v)
@@ -81,9 +81,9 @@ struct pixelrgba
   }
 
   float diff(pixelrgba const & b) const { // use inline
-    return (float)(abs(int(this->pixel.c[0]) - b.pixel.c[0]) +
-		   abs(int(this->pixel.c[1]) - b.pixel.c[1]) +
-		   abs(int(this->pixel.c[2]) - b.pixel.c[2])) / 3 / 255 * 100;
+    return (float)(abs(int(this->pixel.c[0]) - int(b.pixel.c[0]) +
+		       int(this->pixel.c[1]) - int(b.pixel.c[1]) +
+		       int(this->pixel.c[2]) - int(b.pixel.c[2]))) / 3 / 255 * 100;
   }
   
   npixel get() const {
@@ -123,14 +123,20 @@ struct pixelrgba
     pixel.c[0] = rvba;
     pixel.c[1] = rvba;
     pixel.c[2] = rvba;
-    pixel.c[3] = rvba;
   }
 
+  void set(uint32_t rvba) {
+    pixel_rgba b(rvba);
+
+    pixel.c[0] = b.c[0];
+    pixel.c[1] = b.c[1];
+    pixel.c[2] = b.c[2];
+  }
+  
   void setColor(uint8_t rvba) {
     pixel.c[0] = rvba;
     pixel.c[1] = rvba;
     pixel.c[2] = rvba;
-    pixel.c[3] = rvba;
   }
 
   void setComponent(int i, uint8_t c) {

@@ -58,6 +58,8 @@ void *		ObjectPicker::detect(image<pixel> * img) {
   for (int x = 0; x < (img->size.x * img->size.y); x++) {
       inbw.pixel[x].set(img->pixel[x].get());
   }
+  //img.toGreyScale(inbw);
+  
   /*
   if (resize > 0) {
     in->resize(newin, resize, resize);
@@ -65,7 +67,7 @@ void *		ObjectPicker::detect(image<pixel> * img) {
     }*/
   
   image<pixelf> * scany = canny.scan(&inbw);
-
+  return NULL;
   // if lock use lock
   objectFeatures objectFeatures = detectFeatures(scany, img);
   objectEdges edges = findEdges(objectFeatures, img, dump);
@@ -112,7 +114,7 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & feature
     if (canny.getEdge(newedge, (*i).position.to1D(img->size.x), mydump, features.xray, *img, maxPixelDiff, (*i).normal)
 	&& newedge.length > minlength) {
       newPosition += (*i).position;
-      edges.outerEdges.push_front(newedge); 
+      edges.outerEdges.push_front(newedge);
       nb++;
     }
   }
@@ -138,7 +140,9 @@ void				ObjectPicker::render(image<pixel> * img, objectEdges edges) {
        i != edges.outerEdges.end(); ++i) {
     for (std::list<Canny::edgePoint>::const_iterator j = (*i).point->begin();
 	 j != (*i).point->end(); ++j) {
-      img->pixel[(*j).position].setrvb(255, 0, 0);
+      //uint8_t r = 220 / edges.outerEdges.size() * g + 25;
+      //img->pixel[(*j).position].setrvb(r % 5 * (255 / 5), r % 6 * (255 / 6), r % 7 * (255 / 7));
+      img->pixel[(*j).position].setrvb(0, 0, 255);
     }
     img->pixel[(*i).position].setrvb(0, 255, 0);
     g++;

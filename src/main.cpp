@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
 {
       char const *vlc_argv[] =
 	{
-	  //"--no-audio", /* skip any audio track */
+	  "--no-audio", /* skip any audio track */
 	  "--no-xlib", /* tell VLC to not use Xlib */
 	};
       int vlc_argc = sizeof(vlc_argv) / sizeof(*vlc_argv);
@@ -187,9 +187,14 @@ int main(int argc, char *argv[])
        */
       unsigned int width, height;
       libvlc_instance_t *libvlc = libvlc_new(vlc_argc, vlc_argv);
-      libvlc_media_t *m = libvlc_media_new_path(libvlc, argv[1]);
+      libvlc_media_t *m;
+      if (strstr(argv[1], "://") != NULL) {
+	m = libvlc_media_new_location(libvlc, argv[1]);
+      } else {
+	m = libvlc_media_new_path(libvlc, argv[1]);
+      }
       libvlc_media_player_t *mp = libvlc_media_player_new_from_media(m);
-
+	
       libvlc_media_player_play(mp);
       while(!libvlc_media_is_parsed(m))
 	usleep(15);
@@ -225,7 +230,7 @@ int main(int argc, char *argv[])
       ctx.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, size.x, size.y, 32, mask[0], mask[1], mask[2], mask[3]);
       int options = SDL_ANYFORMAT | SDL_HWSURFACE | SDL_DOUBLEBUF;
 
-      screen = SDL_SetVideoMode(size.x + 10, size.y + 10, 0, options);
+      screen = SDL_SetVideoMode(size.x + 20, size.y + 20, 0, options);
       if (!screen) {
 	  printf("cannot set video mode\n");
 	  return EXIT_FAILURE;
@@ -236,8 +241,8 @@ int main(int argc, char *argv[])
        */
       rect.w = 0;
       rect.h = 0;
-      rect.x = 5;
-      rect.y = 5;
+      rect.x = 10;
+      rect.y = 10;
       while(!done)
 	{
 	  action = 0;
@@ -259,7 +264,7 @@ int main(int argc, char *argv[])
 	      break;
 	    case SDLK_RETURN:
 	      options ^= SDL_FULLSCREEN;
-	      screen = SDL_SetVideoMode(size.x + 10, size.y + 10, 0, options);
+	      screen = SDL_SetVideoMode(size.x + 20, size.y + 20, 0, options);
 	      break;
 	    case SDLK_a:
 	      setPause = !setPause;

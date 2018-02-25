@@ -210,6 +210,10 @@ struct vec2
   inline cordinate	to1D(int xlen) const {
     return xlen * y + x;
   }
+
+  inline cordinate	to1D() const {
+    return y * x;
+  }
   
   cordinate	length() const
   {

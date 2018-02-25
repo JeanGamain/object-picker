@@ -29,7 +29,7 @@ XrayFeatures::XrayFeatures(vec2 aimTargetPositon,
     maxDiff(9),
     backGMultiRayBonus(0.25),
     minRayPerBackG(1), // 2 -> ?3
-    maxBackGThreshold(17),
+    maxBackGThreshold(28),
     objCMultiRayBonus(0.25),
     minRayPerObjC(1),
     maxObjCThreshold(15),
@@ -104,8 +104,6 @@ void	XrayFeatures::extractFeatures(std::list<colorSplit> & xraySplit, image<pixe
   //printf("size bg %lu, objc %lu, edges %lu\n", features.backgroundColor.size(), features.objectColor.size(), features.edges.size());
   // xray start from front edges
   // refonte image<x> * to &
-  // refonte pixel pixel
-  // refonte rgba32
 }
 
 std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::searchBackGroundColors(std::list<colorSplit> & xraySplit,
@@ -201,6 +199,7 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
   std::list<colorSplit>::iterator i;
   float	score;
   float count = 1;
+  float scoreDiff;
   float scoreSum;
 
   splits.sort([](const colorSplit & a, const colorSplit & b) {
@@ -213,20 +212,21 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
   scoreSum = (*i).score;
   score = scoreSum;
   while (i != splits.end() && (*i).score != 0 &&
-	 ((score - (float)(*i).score) / score * 100.0f) < threshold) {
+	 (scoreDiff = ((score - (float)(*i).score) / score * 100.0f)) < threshold) {
     colorOutput.push_front((*i++).color);
     scoreSum += (*i).score;
     score = scoreSum / ++count;
   }
+  //printf("th %f\n", ((score - (float)(*i).score) / score * 100.0f));
   return i;
 }
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
   //(void)aimTargetPosition;
-  aimPosition = (aimTargetPosition * aimRatio[0] +
+  /*aimPosition = (aimTargetPosition * aimRatio[0] +
 		 aimPosition * aimRatio[1] +
 		 originalAimPosition * aimRatio[2]
-		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);
+		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);*/
 }
 
 void		XrayFeatures::detectColorSplit(image<pixelf> * scany,
@@ -268,7 +268,7 @@ void		XrayFeatures::detectColorSplit(image<pixelf> * scany,
       colorSum[0] += img->pixel[pos.to1D(img->size.x)].getr();
       colorSum[1] += img->pixel[pos.to1D(img->size.x)].getv();
       colorSum[2] += img->pixel[pos.to1D(img->size.x)].getb();
-      img->pixel[pos.to1D(img->size.x)].set((uint16_t)(255 / 18 * nbSplit)); //
+      img->pixel[pos.to1D(img->size.x)].set((uint32_t)((uint32_t)16581375 / 8 * nbSplit) ^ 1);
     }
     // search colorSplit groupe or create new one
     if (splitLength > 0) {

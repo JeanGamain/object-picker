@@ -9,7 +9,9 @@ public:
   Gaussian(vec2 const & n, const float sigma);
   ~Gaussian();
   
-  void filter(const pixelf *in, pixelf *out);
+  void	filter(const pixelf *in, pixelf *out) const;
+  int	getKernelSize() const;
+  int	getKernelSize(const float a) const;
 
 public:
   const vec2	size;

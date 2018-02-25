@@ -7,6 +7,7 @@
 #include <string.h>
 #include "math.hpp"
 #include "vec2.hpp"
+//#include "GreyScale.hpp"
 
 template <class T>
 class image {
@@ -137,7 +138,12 @@ public:
     pixel = (T*)n;
     return true;
   }
-  
+
+  /*  image<pixelf> toGreyScale(image<pixelf> const & out) {
+    GreyScale procesor;
+
+    return procesor::process<T>(this, out);
+    }*/
 };
 
 #endif /* !IMAGE */
