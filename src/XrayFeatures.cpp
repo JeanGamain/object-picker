@@ -268,7 +268,7 @@ void		XrayFeatures::detectColorSplit(image<pixelf> * scany,
       colorSum[0] += img->pixel[pos.to1D(img->size.x)].getr();
       colorSum[1] += img->pixel[pos.to1D(img->size.x)].getv();
       colorSum[2] += img->pixel[pos.to1D(img->size.x)].getb();
-      img->pixel[pos.to1D(img->size.x)].set((uint32_t)((uint32_t)16581375 / 8 * nbSplit) ^ 1);
+      //img->pixel[pos.to1D(img->size.x)].set((uint32_t)((uint32_t)16581375 / 8 * nbSplit) ^ 1);
     }
     // search colorSplit groupe or create new one
     if (splitLength > 0) {

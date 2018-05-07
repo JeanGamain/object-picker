@@ -17,6 +17,7 @@
 extern image<pixel> * img;
 extern varSet vaParm[24];
 extern int maxParm;
+extern unsigned int renderMode;
 
 Canny::Canny(vec2 const & size,
 	     unsigned char * state,
@@ -26,6 +27,7 @@ Canny::Canny(vec2 const & size,
 	     const float tmax = 60,
 	     const float sigma = 1.4f)
   : size(size),
+    edgeGroupId(Canny::minEdgeGroupId),
     detectionState(state),
     dump(dump),
     minlength(minlength),
@@ -83,15 +85,10 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
 
   // clear output
   if (blur != NULL) {
-    //memcpy(nms->pixel, newin->pixel, size.x * size.y * sizeof(pixelf));
+    memcpy(nms->pixel, newin->pixel, size.x * size.y * sizeof(pixelf));
     blur->filter(newin->pixel, nms->pixel);
     newin = nms;
   }
-
-  for (int i = 0; i < newin->size.to1D(); i++) {
-    img->pixel[i].set(uint8_t(newin->pixel[i].get() + 0.5));
-  }
-  //return nms;
   
   convolution(newin->pixel, Gx->pixel, GMx, 3, size);
   convolution(newin->pixel, Gy->pixel, GMy, 3, size);
@@ -137,7 +134,14 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
   return nms;
 }
 
-bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump, XrayFeatures::xrayFeatures const & features, image<pixel> const & image, float maxPixelDiff, bool start) {
+bool		Canny::getEdge(edge & newedge,
+			       cordinate position,
+			       unsigned int dump,
+			       XrayFeatures::xrayFeatures const & features,
+			       image<pixel> const & image,
+			       float maxPixelDiff,
+			       bool start) {
+  const vec2	halfImgSize = image.size / 2;
   unsigned int	nedges;
   cordinate	kdir[9];
   cordinate	pos1d;
@@ -150,7 +154,8 @@ bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump, Xray
   newedge.length = 1;
   newedge.color = 0; // use for pixel moy of the edge 
   newedge.point = new std::list<edgePoint>();
-  detectionState[position] = 255;
+  detectionState[position] = edgeGroupId;
+  image.pixel[position].set((uint32_t)((uint32_t)16581375 / 100 * edgeGroupId + 10) ^ 1);
   edges[0] = position;
   do {
     kdir[8] = edges[--nedges];
@@ -170,28 +175,36 @@ bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump, Xray
 	// printf("NOO\n");
 	// continue;
 	// }
-	detectionState[pos1d] = 255;
+	detectionState[pos1d] = edgeGroupId;
 	edges[nedges] = pos1d;
 	nedges++;
 	newedge.length++;
 	if (dump == 0 || newedge.length % dump == 0) {
-
-	  
-	  if (k != 0 && k != 2 && k != 5 && k != 7 ) {
-	    newedge.point->push_front({ pos1d, (char)k });
-	    //image.pixel[(dirNormal[start][k] * 5).to1D(image.size.x) + pos1d].setrvb(0, 255, 0);
-	    //image.pixel[(dirNormal[!start][k] * 5).to1D(image.size.x) + pos1d].setrvb(255, 0, 0);
+	  if (renderMode == 3) {
+	    image.pixel[pos1d].setrvb(0, 0, 255);
+	    continue;
 	  }
-	  int dk = ((pos1d % image.size.x) < (image.size.x / 2)) ? (((pos1d / image.size.x) < (image.size.y / 2)) ? 0 : 5) : (((pos1d / image.size.x) < (image.size.y / 2)) ? 2 : 7);
-
-	  image.pixel[(dirNormal[start][dk] * 2).to1D(image.size.x) + pos1d].setrvb(0, 255, 0);
-	  image.pixel[(dirNormal[!start][dk] * 2).to1D(image.size.x) + pos1d].setrvb(255, 0, 0);
+	  int dk;
+	  vec2 pos(pos1d % image.size.x, pos1d / image.size.x);
+	  
+	  if (k == 1 || k == 6) {
+	    dk = (pos.x < halfImgSize.x) ? 3 : 4;
+	  } else if (k == 3 || k == 4) {
+	    dk = (pos.y < halfImgSize.y) ? 1 : 6;
+          } else {
+	    dk =
+	      (pos.x < halfImgSize.x) ?
+	      (pos.y < halfImgSize.y ? 0 : 5) :
+	      (pos.y < halfImgSize.y ? 2 : 7);
+	  }
 	  std::list<pixel>::const_iterator i;
 	  int innerColor = -1;
 	  pixel edgeColor[2] = {
 	    image.pixel[(dirNormal[start][dk] * 2).to1D(image.size.x) + pos1d],
 	    image.pixel[(dirNormal[!start][dk] * 2).to1D(image.size.x) + pos1d]
 	  };
+	  image.pixel[(dirNormal[start][dk] * 3).to1D(image.size.x) + pos1d].setrvb(0, 255, 0);
+	  image.pixel[(dirNormal[!start][dk] * 3).to1D(image.size.x) + pos1d].setrvb(0, 0, 255);
 	  for (i = features.backgroundColor.begin();
 	       i != features.backgroundColor.end() && innerColor < 0;
 	       i++) {
@@ -200,24 +213,31 @@ bool		Canny::getEdge(edge & newedge, cordinate position, unsigned int dump, Xray
 	    else if ((*i).diff(edgeColor[1]) <= maxPixelDiff)
 	      innerColor = 0;
 	  }
+	  image.pixel[pos1d].setrvb(255, 0, 0);
+	  //	  image.pixel[pos1d].set((uint32_t)((uint32_t)16581375 / 100 * edgeGroupId + 10) ^ 1);
 	  if (innerColor > -1) {
 	    for (i = features.objectColor.begin();
 		 i != features.objectColor.end() && (*i).diff(edgeColor[innerColor]) > maxPixelDiff;
 		 i++);
 	    if (i != features.objectColor.end()) {
 	      newedge.point->push_front({ pos1d, (char)dk });
-	      printf("maxpixeldiff %f\n", (*i).diff(edgeColor[innerColor]));
+	    } else {
+	      continue;
 	    }
+	  } else {
+	    continue;
 	  }
 	}
       }
     }
   } while (nedges > 0);
+  edgeGroupId++;
   return true;
 }
 
 void				Canny::clearState() {
   memcpy(detectionState, boundClearScan, size.x * size.y * sizeof(char));
+  edgeGroupId = Canny::minEdgeGroupId;
 }
 
 void Canny::setMax(float max) {

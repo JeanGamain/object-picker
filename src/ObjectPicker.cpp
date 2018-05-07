@@ -8,6 +8,7 @@
 #include "parm.hpp"
 extern varSet vaParm[24];
 extern int maxParm;
+extern unsigned int renderMode;
 
 ObjectPicker::ObjectPicker(vec2 size)
   : truesize(size),
@@ -58,7 +59,6 @@ void *		ObjectPicker::detect(image<pixel> * img) {
   for (int x = 0; x < (img->size.x * img->size.y); x++) {
       inbw.pixel[x].set(img->pixel[x].get());
   }
-  //img.toGreyScale(inbw);
   
   /*
   if (resize > 0) {
@@ -67,12 +67,19 @@ void *		ObjectPicker::detect(image<pixel> * img) {
     }*/
   
   image<pixelf> * scany = canny.scan(&inbw);
-  return NULL;
+
+  if (renderMode == 2) {
+    for (int x = 0; x < (img->size.x * img->size.y); x++) {
+      img->pixel[x].set((uint8_t)(scany->pixel[x].get() / 8));
+    }
+    return NULL;
+  }
+  
   // if lock use lock
   objectFeatures objectFeatures = detectFeatures(scany, img);
   objectEdges edges = findEdges(objectFeatures, img, dump);
 
-  render(img, edges);
+  //render(img, edges);
   optimizeDetection(lastObjectPosition);
   /*
   for (std::list<Canny::edge>::const_iterator i = edges->begin(); i != edges->end(); ++i) {
@@ -108,6 +115,7 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & feature
   vec2		pos;
   int		nb = 0;
 
+  
   canny.clearState();
   for (std::list<XrayFeatures::edgePoint2d>::const_iterator i = features.xray.edges.begin();
        i != features.xray.edges.end(); i++) {

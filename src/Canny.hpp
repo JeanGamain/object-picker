@@ -53,6 +53,7 @@ public:
   
 private:
   vec2		size;
+  unsigned char	edgeGroupId;
   unsigned char * detectionState;
   unsigned int	dump;
   unsigned int	minlength;
@@ -120,6 +121,7 @@ public:
       {1, 1},  {1, 0}, {-1, 1}
     }
   };
+  const unsigned char minEdgeGroupId = 2;
 };
 
 #endif /* !CANNY_HPP_ */
