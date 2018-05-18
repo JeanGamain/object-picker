@@ -11,12 +11,10 @@
 #include "Convolution.hpp"
 #include "Gaussian.hpp"
 #include "math.hpp"
-
 #include "pixel.hpp"
-#include "parm.hpp"
+
+#include "visualdebug.hpp"
 extern image<pixel> * img;
-extern varSet vaParm[24];
-extern int maxParm;
 extern unsigned int renderMode;
 
 Canny::Canny(vec2 const & size,
@@ -34,7 +32,8 @@ Canny::Canny(vec2 const & size,
     tmin(tmin),
     tmax(tmax),
     sigma(sigma),
-    blur((sigma > 0) ? new Gaussian(size, sigma) : NULL)
+    blur((sigma > 0) ? new Gaussian(size, sigma) : NULL),
+    matrixIdx(0)
 {
   G = new image<pixelf>(size);
   Gx = new image<pixelf>(size);
@@ -60,10 +59,9 @@ Canny::Canny(vec2 const & size,
   edges = (int*)Gx->pixel;
   edgeList = new std::list<edge>();
 
-  static float maxMin = 1, maxMax = 200, maxStep = 1;
-  vaParm[maxParm++] = (varSet){ &maxMin, &maxMax, &maxStep, &this->tmax, "canny max", FLOAT };
-  static float minMin = 1, minMax = 200, minStep = 1;
-  vaParm[maxParm++] = (varSet){ &minMin, &minMax, &minStep, &this->tmin, "canny min", FLOAT };
+  PARMVSVAR(1, 200, 1, &this->tmax, "canny max");
+  PARMVSVAR(1, 200, 1, &this->tmin, "canny min");
+  PARMVSVAR(0, 2, 1, &this->matrixIdx, "canny matrixIdx");
 }
 
 Canny::~Canny() {
@@ -89,9 +87,10 @@ image<pixelf> * Canny::scan(image<pixelf> * in)
     blur->filter(newin->pixel, nms->pixel);
     newin = nms;
   }
-  
-  convolution(newin->pixel, Gx->pixel, GMx, 3, size);
-  convolution(newin->pixel, Gy->pixel, GMy, 3, size);
+  //printf("start\n");
+  convolution(newin->pixel, Gx->pixel, matrix[matrixIdx][1], matrixSize[matrixIdx], size);
+  convolution(newin->pixel, Gy->pixel, matrix[matrixIdx][0], matrixSize[matrixIdx], size);
+  //printf("end\n");
 
   #pragma omp parallel for
   for (int x = 1; x < (size.x * size.y); x++) {
@@ -180,7 +179,7 @@ bool		Canny::getEdge(edge & newedge,
 	nedges++;
 	newedge.length++;
 	if (dump == 0 || newedge.length % dump == 0) {
-	  if (renderMode == 3) {
+	  if (renderMode == 4 || renderMode == 5) {
 	    image.pixel[pos1d].setrvb(0, 0, 255);
 	    continue;
 	  }

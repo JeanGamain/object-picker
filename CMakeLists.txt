@@ -12,12 +12,14 @@ set(EXECUTABLE_OUTPUT_PATH ../bin/)
 
 set(${PROJECT_NAME}_src
 	./src/main.cpp
+	./src/math.cpp
 	./src/ObjectPicker.cpp
 	./src/Gaussian.cpp
 	./src/Canny.cpp
 	./src/Convolution.cpp
 	./src/LinearDisplacement.cpp
 	./src/XrayFeatures.cpp
+	./src/Vaparm.cpp
 	)
 
 set(objectpicker_includes_directories

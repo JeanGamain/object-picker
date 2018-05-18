@@ -19,6 +19,7 @@ Gaussian::Gaussian(vec2 const & n, const float sigma)
       kernel[c] = (float)(exp(-0.5 * (pow((x - mean) / sigma, 2.0) +
 				      pow((y - mean) / sigma, 2.0)))
 			  / (2 * M_PI * sigma * sigma));
+      
       c++;
     }
   }

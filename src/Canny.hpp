@@ -69,21 +69,60 @@ private:
   std::list<edge> * edgeList;
   unsigned char * boundClearScan;
   int *		  edges;
-  
-  const pixelf GMx[9] = {
-    -1, 0, 1,
-    -2, 0, 2,
-    -1, 0, 1
+
+public:
+  int		matrixIdx;
+
+  const pixelf sobel5X[25] = {
+    2, 2, 4, 2, 2,
+    1, 1, 2, 1, 1,
+    0, 0, 0, 0, 0,
+    -1  -1, -2, -1, -1,
+    -2, -2, -4, -2, -2,
+  };
+
+  const pixelf sobel5Y[25] = {
+    -2, -1, 0, 1, 2,
+    -2, -1, 0, 1, 2,
+    -4, -2, 0, 2, 4,
+    -2  -1, 0, 1, 2,
+    -2, -1, 0, 1, 2,
+  };
+
+  const pixelf scharr3X[9] = {
+    3, 10, 2,
+    0, 0, 0,
+    -3,-10,-3
+  };
+
+  const pixelf scharr3Y[9] = {
+    3, 0, -3,
+    10, 0, -10,
+    3, 0, -3
   };
   
-  
-  const pixelf GMy[9] = {
+  const pixelf sobel3X[9] = {
     1, 2, 1,
     0, 0, 0,
     -1,-2,-1
   };
 
-public:
+  const pixelf sobel3Y[9] = {
+    -1, 0, 1,
+    -2, 0, 2,
+    -1, 0, 1
+  };
+  
+  const pixelf * matrix[3][2] =
+    {
+      { sobel3X, sobel3Y },
+      { sobel5X, sobel5Y },
+      { scharr3X, scharr3Y },
+    };
+  
+  const int matrixSize[3] = { 3, 5, 3 };
+  const int matrixExtreme[3] = { 4, 12, 16 };
+
   enum   D {
     NW = 0, N, NE,
     W, E,

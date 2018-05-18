@@ -5,9 +5,8 @@
 #include "LinearDisplacement.hpp"
 #include "ObjectPicker.hpp"
 
-#include "parm.hpp"
-extern varSet vaParm[24];
-extern int maxParm;
+#include "visualdebug.hpp"
+
 extern unsigned int renderMode;
 
 ObjectPicker::ObjectPicker(vec2 size)
@@ -27,17 +26,10 @@ ObjectPicker::ObjectPicker(vec2 size)
     inbw(image<pixelf>(size)),
     lock()
 {
-  static float blurMin = 0, blurMax = 30, blurStep = 0.01;
-  vaParm[maxParm++] = (varSet){ &blurMin, &blurMax, &blurStep, &sigma, "canny blur", FLOAT };
-
-  static unsigned int dumpMin = 1, dumpMax = 30, dumpStep = 1;
-  vaParm[maxParm++] = (varSet){ &dumpMin, &dumpMax, &dumpStep, &dump, "canny dump", UINT };
-
-  static unsigned int lMin = 1, lMax = 200, lStep = 1;
-  vaParm[maxParm++] = (varSet){ &lMin, &lMax, &lStep, &minlength, "min length", UINT };
-
-  static float mpdMin = 0, mpdMax = 40, mpdStep = 1;
-  vaParm[maxParm++] = (varSet){ &mpdMin, &mpdMax, &mpdStep, &maxPixelDiff, "canny maxPixelDiff", FLOAT };
+  PARMVSVAR(0, 30, 0.01, &sigma, "canny blur");
+  PARMVSVAR(1, 30, 1, &dump, "canny dump");
+  PARMVSVAR(1, 200, 1, &minlength, "min length");
+  PARMVSVAR(0, 40, 1, &maxPixelDiff, "canny maxPixelDiff");
 }
 
 ObjectPicker::~ObjectPicker() {
@@ -59,6 +51,12 @@ void *		ObjectPicker::detect(image<pixel> * img) {
   for (int x = 0; x < (img->size.x * img->size.y); x++) {
       inbw.pixel[x].set(img->pixel[x].get());
   }
+  if (renderMode == 2) {
+    for (int x = 0; x < (img->size.x * img->size.y); x++) {
+      img->pixel[x].set((uint8_t)inbw.pixel[x].get());
+    }
+    return NULL;
+  }
   
   /*
   if (resize > 0) {
@@ -68,9 +66,9 @@ void *		ObjectPicker::detect(image<pixel> * img) {
   
   image<pixelf> * scany = canny.scan(&inbw);
 
-  if (renderMode == 2) {
+  if (renderMode == 3) {
     for (int x = 0; x < (img->size.x * img->size.y); x++) {
-      img->pixel[x].set((uint8_t)(scany->pixel[x].get() / 8));
+      img->pixel[x].set((uint8_t)(ABS(scany->pixel[x].get()) / (canny.matrixExtreme[canny.matrixIdx] / 2)));
     }
     return NULL;
   }
@@ -111,7 +109,7 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & feature
 							unsigned int mydump) {
   objectEdges	edges;
   Canny::edge	newedge;
-  vec2		newPosition = 0;
+  vec2		newPosition = cordinate(0);
   vec2		pos;
   int		nb = 0;
 

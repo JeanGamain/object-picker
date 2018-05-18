@@ -6,6 +6,8 @@
 #include "pixel.hpp"
 #include "pixelf.hpp"
 
+#include <stdio.h>
+
 const int	maxComponent = 3;
 const float	componentMin = 0;
 const float	componentMax = 16581375;
@@ -88,6 +90,14 @@ struct pixelrgba
   
   npixel get() const {
     return (npixel)(pixel.c[0] + pixel.c[1] + pixel.c[2]) / 3;
+    /*if (p > 255) {
+      printf("NONN %f\n", (npixel)(p));
+      }*/
+    //return (npixel)(pixel.c[0]);
+    /*return (npixel)(
+		    morton3d((uint32_t)pixel.c[0], (uint32_t)pixel.c[1], (uint32_t)pixel.c[2])
+		    / componentMax * 255
+		    );*/
   }
 
   void getrvb(uint8_t *p) {

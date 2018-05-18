@@ -15,10 +15,8 @@
 #include "image.hpp"
 #include "pixel.hpp"
 #include "ObjectPicker.hpp"
-#include "parm.hpp"
 
-varSet	vaParm[24];
-int	maxParm = 0;
+#include "visualdebug.hpp"
 
 vec2 size;
 image<pixel> * img;
@@ -95,71 +93,6 @@ static void display(void *data, void *id)
   assert(id == NULL);
 }
 
-int		vaParmI = 0;
-void		ChangevaParm(char add) {
-  int		i = vaParmI;
-
-  if (maxParm == 0)
-    return;
-  if (vaParm[i].type == UINT) {
-    if (add) {
-      if (*(unsigned int*)(vaParm[i].value) + *(unsigned int*)(vaParm[i].step) <= *(unsigned int*)(vaParm[i].max)) {
-	*((unsigned int*)(vaParm[i].value)) += *((unsigned int*)(vaParm[i].step));
-	printf("%s: %u +\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
-      } else
-	printf("%s: %u MAX\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
-    } else {
-      if (*(unsigned int*)(vaParm[i].value) != 0 && *(unsigned int*)(vaParm[i].value) - *(unsigned int*)(vaParm[i].step) >= *(unsigned int*)(vaParm[i].min)) {
-	*((unsigned int*)(vaParm[i].value)) -= *((unsigned int*)(vaParm[i].step));
-	printf("%s: %u -\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
-      } else
-	printf("%s: %u MIN\n", vaParm[i].name, *(unsigned int*)(vaParm[i].value));
-    }
-  } else if (vaParm[i].type == INT) {
-    if (add) {
-      if (*(int*)(vaParm[i].value) + *(int*)(vaParm[i].step) <= *(int*)(vaParm[i].max)) {
-	*((int*)(vaParm[i].value)) += *((int*)(vaParm[i].step));
-	printf("%s: %d +\n", vaParm[i].name, *(int*)(vaParm[i].value));
-      } else
-	printf("%s: %d MAX\n", vaParm[i].name, *(int*)(vaParm[i].value));
-    } else {
-      if (*(int*)(vaParm[i].value) - *(int*)(vaParm[i].step) >= *(int*)(vaParm[i].min)) {
-	*((int*)(vaParm[i].value)) -= *((int*)(vaParm[i].step));
-	printf("%s: %d -\n", vaParm[i].name, *(int*)(vaParm[i].value));
-      } else
-	printf("%s: %d MIN\n", vaParm[i].name, *(int*)(vaParm[i].value));
-    }
-  } else if (vaParm[i].type == FLOAT) {
-      if (add) {
-	if (*((float*)(vaParm[i].value)) + *((float*)(vaParm[i].step)) <= *(float*)(vaParm[i].max)) {
-	  *((float*)(vaParm[i].value)) += *((float*)(vaParm[i].step));
-	  printf("%s: %f +\n", vaParm[i].name, *((float*)(vaParm[i].value)));
-	} else
-	  printf("%s: %f MAX\n", vaParm[i].name, *((float*)(vaParm[i].value)));
-      } else {
-	if (*((float*)(vaParm[i].value)) - *((float*)(vaParm[i].step)) >= *(float*)(vaParm[i].min)) {
-	  *((float*)(vaParm[i].value)) -= *((float*)(vaParm[i].step));
-	  printf("%s: %f -\n", vaParm[i].name, *((float*)(vaParm[i].value)));
-	} else
-	  printf("%s: %f MIN\n", vaParm[i].name, *((float*)(vaParm[i].value)));
-      }
-  } else if (vaParm[i].type == DOUBLE) {
-    if (add) {
-      if (*(double*)(vaParm[i].value) + *(double*)(vaParm[i].step) <= *(double*)(vaParm[i].max)) {
-	*((double*)(vaParm[i].value)) += *((double*)(vaParm[i].step));
-	printf("%s: %f +\n", vaParm[i].name, *((double*)(vaParm[i].value)));
-      } else
-	printf("%s: %f MAX\n", vaParm[i].name, *((double*)(vaParm[i].value)));
-    } else {
-      if (*(double*)(vaParm[i].value) - *(double*)(vaParm[i].step) >= *(double*)(vaParm[i].min)) {
-	*((double*)(vaParm[i].value)) -= *((double*)(vaParm[i].step));
-	printf("%s: %f -\n", vaParm[i].name, *((double*)(vaParm[i].value)));
-      } else
-	printf("%s: %f MIN\n", vaParm[i].name, *((double*)(vaParm[i].value)));
-    }
-  }
-}
-
 int main(int argc, char *argv[])
 {
   char const *vlc_argv[] =
@@ -182,9 +115,7 @@ int main(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
-  static unsigned int MinRCount = 0, MaxRCount = 5, StepRCount = 1;
-  vaParm[maxParm++] = (varSet){ &MinRCount, &MaxRCount, &StepRCount, &renderMode, "render mode", UINT };
-  
+  PARMVSVAR(0, 6, 1, &renderMode, "render mode");
   ctx.mutex = SDL_CreateMutex();
   /*
    *  Initialise libVLC
@@ -274,25 +205,17 @@ int main(int argc, char *argv[])
 	setPause = !setPause;
 	libvlc_media_player_set_pause(mp, setPause);
 	break;
-      case SDLK_u:
-	if (vaParmI + 1 >= maxParm)
-	  vaParmI = 0;
-	else
-	  vaParmI++;
-	printf("parm: %s\n", vaParm[vaParmI].name);
-	break;
       case SDLK_i:
-	if (vaParmI - 1 < 0)
-	  vaParmI = maxParm - 1;
-	else
-	  vaParmI--;
-	printf("parm: %s\n", vaParm[vaParmI].name);
+	PARMVSVAR_NEXT();
+	break;
+      case SDLK_u:
+	PARMVSVAR_PREVIOUS();
 	break;
       case SDLK_o:
-	ChangevaParm(1);
+	PARMVSVAR_UPDATE(0);
 	break;
       case SDLK_p:
-	ChangevaParm(0);
+	PARMVSVAR_UPDATE(1);
 	break;
       }
       

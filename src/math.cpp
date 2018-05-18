@@ -1,4 +1,6 @@
 #include "math.hpp"
+#include "vec2.hpp"
+#include "vec3.hpp"
 
 inline double dot(vec3 v, vec3 p)
 {
@@ -14,7 +16,7 @@ double		norme(vec3 a)
 {
   return (sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]));
 }
-
+/*
 void		rotate(vec3 & vec, vec3 angle)
 {
   vec3	radangle = { RAD(angle[0]), RAD(angle[1]), RAD(angle[2]) };
@@ -43,4 +45,4 @@ void		rotate_cordinate(vec3 & var, double *tmpsin, double *tmpcos)
   var[2] = (save[0] * (-tmpsin[1])
 	    + save[1] * (tmpsin[0] * tmpcos[1])
 	    + save[2] * (tmpcos[0] * tmpcos[1]));
-}
+}*/

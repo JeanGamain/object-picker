@@ -10,9 +10,9 @@
 #include "pixel.hpp"
 #include "LinearDisplacement.hpp"
 
-#include "parm.hpp"
-extern varSet vaParm[24];
-extern int maxParm;
+#include "visualdebug.hpp"
+
+extern unsigned int renderMode;
 
 XrayFeatures::XrayFeatures(vec2 aimTargetPositon,
 			   float min, float max,
@@ -36,36 +36,19 @@ XrayFeatures::XrayFeatures(vec2 aimTargetPositon,
     endSplitMalus(1.2)
   {
   assert(xrayaimwidth > 4);
-  static unsigned int MinRCount = 1, MaxRCount = 100, StepRCount = 1;
-  vaParm[maxParm++] = (varSet){ &MinRCount, &MaxRCount, &StepRCount, &rayCount, "rayCount", UINT };
-  //static unsigned int MinAimW = 1, MaxAimW = 200, StepAimW = 1;
-  //vaParm[maxParm++] = (varSet){ &MinAimW, &MaxAimW, &StepAimW, &rayAimWidth, "aim width", UINT };
-  static unsigned int MinPx = 10, MaxPx = 3000, StepPx = 1;
-  vaParm[maxParm++] = (varSet){ &MinPx, &MaxPx, &StepPx, &aimPosition.x, "aim position X", UINT };
-  static unsigned int MinPy = 10, MaxPy = 3000, StepPy = 1;
-  vaParm[maxParm++] = (varSet){ &MinPy, &MaxPy, &StepPy, &aimPosition.y, "aim position Y", UINT };
-
-  static unsigned int MinR1 = 1, MaxR1 = 300, StepR1 = 1;
-  vaParm[maxParm++] = (varSet){ &MinR1, &MaxR1, &StepR1, &aimRatio[0], "aim ratio target", UINT };
-  static unsigned int MinR2 = 1, MaxR2 = 300, StepR2 = 1;
-  vaParm[maxParm++] = (varSet){ &MinR2, &MaxR2, &StepR2, &aimRatio[1], "aim ratio lastpos", UINT };
-  static unsigned int MinR3 = 1, MaxR3 = 300, StepR3 = 1;
-  vaParm[maxParm++] = (varSet){ &MinR3, &MaxR3, &StepR3, &aimRatio[2], "aim ratio originpos", UINT };
-
-  static float MinMax = 0, MaxMax = 300, StepMax = 1;
-  vaParm[maxParm++] = (varSet){ &MinMax, &MaxMax, &StepMax, &tmax, "Xray max", FLOAT };
-  static float MinMin = 0, MaxMin = 300, StepMin = 1;
-  vaParm[maxParm++] = (varSet){ &MinMin, &MaxMin, &StepMin, &tmin, "Xray min", FLOAT };
-
-  static float MinDiff = 1, MaxDiff = 90, StepDiff = 0.1;
-  vaParm[maxParm++] = (varSet){ &MinDiff, &MaxDiff, &StepDiff, &maxDiff, "Xray diff", FLOAT };
-
-  static float MinBackGT = 1, MaxBackGT = 90, StepBackGT = 0.2;
-  vaParm[maxParm++] = (varSet){ &MinBackGT, &MaxBackGT, &StepBackGT, &maxBackGThreshold, "maxBackGThreshold", FLOAT };
-  static float MinObjCT = 1, MaxObjCT = 90, StepObjCT = 0.2;
-  vaParm[maxParm++] = (varSet){ &MinObjCT, &MaxObjCT, &StepObjCT, &maxObjCThreshold, "maxObjCThreshold", FLOAT };
-  static float MinEndSpMalus = 1, MaxEndSpMalus = 2, StepEndSpMalus = 0.1;
-  vaParm[maxParm++] = (varSet){ &MinEndSpMalus, &MaxEndSpMalus, &StepEndSpMalus, &endSplitMalus, "EndSpMalus", FLOAT };
+  PARMVSVAR(1, 100, 1, &rayCount, "rayCount");
+  //PARMVSVAR(1, 200, 1, &rayAimWidth, "aim width", UINT);
+  PARMVSVAR(10, 3000, 1, &aimPosition.x, (char*)"aim position X");
+  PARMVSVAR(10, 3000, 1, &aimPosition.y, (char*)"aim position Y");
+  PARMVSVAR(1, 300, 1, &aimRatio[0], (char*)"aim ratio target");
+  PARMVSVAR(1, 300, 1, &aimRatio[1], (char*)"aim ratio lastpos");
+  PARMVSVAR(1, 300, 1, &aimRatio[2], (char*)"aim ratio originpos");
+  PARMVSVAR(0, 300, 1, &tmax, (char*)"Xray max");
+  PARMVSVAR(0, 300, 1, &tmin, (char*)"Xray min");
+  PARMVSVAR(1, 90, 0.1, &maxDiff, (char*)"Xray diff");
+  PARMVSVAR(1, 90, 0.2, &maxBackGThreshold, (char*)"maxBackGThreshold");
+  PARMVSVAR(1, 90, 0.2, &maxObjCThreshold, (char*)"maxObjCThreshold");
+  PARMVSVAR(1, 2, 0.1, &endSplitMalus, (char*)"EndSpMalus");
 }
 
 XrayFeatures::~XrayFeatures()
@@ -223,10 +206,10 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
   //(void)aimTargetPosition;
-  /*aimPosition = (aimTargetPosition * aimRatio[0] +
+  aimPosition = (aimTargetPosition * aimRatio[0] +
 		 aimPosition * aimRatio[1] +
 		 originalAimPosition * aimRatio[2]
-		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);*/
+		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);
 }
 
 void		XrayFeatures::detectColorSplit(image<pixelf> * scany,
@@ -268,7 +251,9 @@ void		XrayFeatures::detectColorSplit(image<pixelf> * scany,
       colorSum[0] += img->pixel[pos.to1D(img->size.x)].getr();
       colorSum[1] += img->pixel[pos.to1D(img->size.x)].getv();
       colorSum[2] += img->pixel[pos.to1D(img->size.x)].getb();
-      //img->pixel[pos.to1D(img->size.x)].set((uint32_t)((uint32_t)16581375 / 8 * nbSplit) ^ 1);
+      if (renderMode == 5) {
+	img->pixel[pos.to1D(img->size.x)].set((uint32_t)((uint32_t)16581375 / 8 * nbSplit) ^ 1);
+      }
     }
     // search colorSplit groupe or create new one
     if (splitLength > 0) {

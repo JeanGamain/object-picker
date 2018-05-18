@@ -27,6 +27,9 @@ void convolution(const pixelf *in, pixelf *out,
 	  c++;
 	}
       }
+      if (p < 0) {
+	//printf("no %f\n", p);
+      }
       out[y * n.x + x].set(p);
     }
   }

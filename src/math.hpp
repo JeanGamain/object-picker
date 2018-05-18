@@ -101,8 +101,49 @@
 #define NORM(nb, max, min) ((nb - min) / (max - min))
 #endif
 
-#define D2T1(x, y, xlen) (y * xlen + x)
+inline uint32_t	morton2d(uint32_t x, uint32_t y)
+{
+  static const uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF};
+  static const uint32_t S[] = {1, 2, 4, 8};
 
-typedef int32_t	cordinate;
+  x = (x | (x << S[3])) & B[3];
+  x = (x | (x << S[2])) & B[2];
+  x = (x | (x << S[1])) & B[1];
+  x = (x | (x << S[0])) & B[0];
+  
+  y = (y | (y << S[3])) & B[3];
+  y = (y | (y << S[2])) & B[2];
+  y = (y | (y << S[1])) & B[1];
+  y = (y | (y << S[0])) & B[0];
+  
+  return (x | (y << 1));
+}
+
+inline uint32_t	morton3d(uint32_t x, uint32_t y, uint32_t z)
+{
+  static const uint32_t B[] = {0x09249249, 0x030c30c3, 0x0300f00f, 0xff0000ff};
+  static const uint32_t S[] = {2, 4, 8, 16};
+
+  x = (x | (x << S[3])) & B[3];
+  x = (x | (x << S[2])) & B[2];
+  x = (x | (x << S[1])) & B[1];
+  x = (x | (x << S[0])) & B[0];
+  
+  y = (y | (y << S[3])) & B[3];
+  y = (y | (y << S[2])) & B[2];
+  y = (y | (y << S[1])) & B[1];
+  y = (y | (y << S[0])) & B[0];
+  
+  z = (z | (z << S[3])) & B[3];
+  z = (z | (z << S[2])) & B[2];
+  z = (z | (z << S[1])) & B[1];
+  z = (z | (z << S[0])) & B[0];
+  
+  return (x | (y << 1) | (z << 2));
+}
+
+inline uint32_t morton2d(uint32_t x, uint32_t y);
+
+typedef int_fast32_t	cordinate;
 
 #endif /* MATH_HPP_ */
