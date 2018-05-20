@@ -27,7 +27,7 @@ public:
   Canny(vec2 const & size, unsigned char * state, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
   ~Canny();
 
-  image<pixelf> *	scan(image<pixelf> * in);
+  void			scan(image<pixelf> const & in, image<pixelf> const & out);
   bool			getEdge(edge & newedge,
 				cordinate position,
 				unsigned int dump,

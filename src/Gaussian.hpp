@@ -6,15 +6,16 @@
 
 class Gaussian {
 public:
+  Gaussian();
   Gaussian(vec2 const & n, const float sigma);
   ~Gaussian();
   
   void	filter(const pixelf *in, pixelf *out) const;
+  void	createKernel();
   int	getKernelSize() const;
   int	getKernelSize(const float a) const;
 
 public:
-  const vec2	size;
   const int	ksize;
   const float	mean;
   pixelf *	kernel;

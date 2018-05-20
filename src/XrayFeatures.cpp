@@ -183,7 +183,7 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
   float	score;
   float count = 1;
   float scoreDiff;
-  float scoreSum;
+  double scoreSum;
 
   splits.sort([](const colorSplit & a, const colorSplit & b) {
       return (a.score > b.score);
@@ -194,9 +194,12 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
     return i;
   scoreSum = (*i).score;
   score = scoreSum;
-  while (i != splits.end() && (*i).score != 0 &&
+  while ((*i).score != 0 &&
 	 (scoreDiff = ((score - (float)(*i).score) / score * 100.0f)) < threshold) {
     colorOutput.push_front((*i++).color);
+    if (i != splits.end()) {
+      break;
+    }
     scoreSum += (*i).score;
     score = scoreSum / ++count;
   }

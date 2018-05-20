@@ -6,27 +6,51 @@
 
 // http://www.songho.ca/dsp/cannyedge/cannyedge.html
 
-Gaussian::Gaussian(vec2 const & n, const float sigma)
-  : size(n),
-    ksize(getKernelSize(sigma)),
+Gaussian::Gaussian()
+  : ksize(7),
+    mean((float)floor(ksize / 2.0)),
+    kernel(new pixelf[ksize * ksize]),
+    sigma(1.47),
+    kernel{
+      0.001144, 0.003638, 0.007283, 0.009179, 0.007283, 0.003638, 0.001144,
+      0.003638, 0.011568, 0.023160, 0.029190, 0.023160, 0.011568, 0.003638,
+      0.007283, 0.023160, 0.046367, 0.058438, 0.046367, 0.023160, 0.007283,
+      0.009179, 0.029190, 0.058438, 0.073652, 0.058438, 0.029190, 0.009179,
+      0.007283, 0.023160, 0.046367, 0.058438, 0.046367, 0.023160, 0.007283,
+      0.003638, 0.011568, 0.023160, 0.029190, 0.023160, 0.011568, 0.003638,
+      0.001144, 0.003638, 0.007283, 0.009179, 0.007283, 0.003638, 0.001144
+    }
+  
+{
+  
+}
+
+Gaussian::Gaussian(const float sigma)
+  : ksize(getKernelSize(sigma)),
     mean((float)floor(ksize / 2.0)),
     kernel(new pixelf[ksize * ksize]),
     sigma(sigma)
 {
-  size_t c = 0;
+}
+
+Gaussian::~Gaussian() {
+  delete(kernel);
+}
+
+void Gaussian::createKernel()
+{
+    size_t c = 0;
   for (int x = 0; x < ksize; x++) {
     for (int y = 0; y < ksize; y++) {
       kernel[c] = (float)(exp(-0.5 * (pow((x - mean) / sigma, 2.0) +
 				      pow((y - mean) / sigma, 2.0)))
 			  / (2 * M_PI * sigma * sigma));
       
+      //printf("%f, ", kernel[c].pixel);
       c++;
     }
+    //printf("\n");
   }
-}
-
-Gaussian::~Gaussian() {
-  delete(kernel);
 }
 
 int Gaussian::getKernelSize(const float a) const

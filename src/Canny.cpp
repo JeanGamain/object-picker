@@ -75,7 +75,7 @@ Canny::~Canny() {
 }
 
 
-image<pixelf> * Canny::scan(image<pixelf> * in)
+void Canny::scan(image<pixelf> const & in, image<pixelf> & out)
 {
   assert(in->pixel != NULL);
 
@@ -183,6 +183,7 @@ bool		Canny::getEdge(edge & newedge,
 	    image.pixel[pos1d].setrvb(0, 0, 255);
 	    continue;
 	  }
+
 	  int dk;
 	  vec2 pos(pos1d % image.size.x, pos1d / image.size.x);
 	  
@@ -199,11 +200,11 @@ bool		Canny::getEdge(edge & newedge,
 	  std::list<pixel>::const_iterator i;
 	  int innerColor = -1;
 	  pixel edgeColor[2] = {
-	    image.pixel[(dirNormal[start][dk] * 2).to1D(image.size.x) + pos1d],
-	    image.pixel[(dirNormal[!start][dk] * 2).to1D(image.size.x) + pos1d]
+	    image.pixel[(dirNormal[start][dk] * 1).to1D(image.size.x) + pos1d],
+	    image.pixel[(dirNormal[!start][dk] * 1).to1D(image.size.x) + pos1d]
 	  };
-	  image.pixel[(dirNormal[start][dk] * 3).to1D(image.size.x) + pos1d].setrvb(0, 255, 0);
-	  image.pixel[(dirNormal[!start][dk] * 3).to1D(image.size.x) + pos1d].setrvb(0, 0, 255);
+	  image.pixel[(dirNormal[start][dk] * 1).to1D(image.size.x) + pos1d].setrvb(0, 255, 0);
+	  image.pixel[(dirNormal[!start][dk] * 1).to1D(image.size.x) + pos1d].setrvb(0, 0, 255);
 	  for (i = features.backgroundColor.begin();
 	       i != features.backgroundColor.end() && innerColor < 0;
 	       i++) {
