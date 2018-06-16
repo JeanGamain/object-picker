@@ -28,9 +28,9 @@ public:
   ObjectPicker(vec2 size);
   ~ObjectPicker();
 
-  void *	detect(image<pixel> * img);
+  void *	detect(image<pixel> & img);
 
-private:
+private:  
   objectFeatures		detectFeatures(image<pixelf> * scany,
 					       image<pixel> * img);
   objectEdges			findEdges(objectFeatures const & objectFeatures,
@@ -63,7 +63,8 @@ private:
   
   XrayFeatures	xrayFeaturesDetector;
   Canny		canny;
-  image<pixelf>	inbw;
+  image<pixelf>	greyScaleImg;
+  image<pixelf>	blurGreyScaleImg;
   objectFeatures	lock;
 
   vec2		lastObjectPosition;

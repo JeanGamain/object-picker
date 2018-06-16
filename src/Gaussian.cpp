@@ -9,9 +9,10 @@
 Gaussian::Gaussian()
   : ksize(7),
     mean((float)floor(ksize / 2.0)),
-    kernel(new pixelf[ksize * ksize]),
-    sigma(1.47),
-    kernel{
+    sigma(1.47)
+{
+  /*
+      kernel{
       0.001144, 0.003638, 0.007283, 0.009179, 0.007283, 0.003638, 0.001144,
       0.003638, 0.011568, 0.023160, 0.029190, 0.023160, 0.011568, 0.003638,
       0.007283, 0.023160, 0.046367, 0.058438, 0.046367, 0.023160, 0.007283,
@@ -19,18 +20,17 @@ Gaussian::Gaussian()
       0.007283, 0.023160, 0.046367, 0.058438, 0.046367, 0.023160, 0.007283,
       0.003638, 0.011568, 0.023160, 0.029190, 0.023160, 0.011568, 0.003638,
       0.001144, 0.003638, 0.007283, 0.009179, 0.007283, 0.003638, 0.001144
-    }
-  
-{
-  
+    };*/
+
 }
 
 Gaussian::Gaussian(const float sigma)
   : ksize(getKernelSize(sigma)),
     mean((float)floor(ksize / 2.0)),
-    kernel(new pixelf[ksize * ksize]),
-    sigma(sigma)
+    sigma(sigma),
+    kernel(new pixelf[ksize * ksize])
 {
+  createKernel();
 }
 
 Gaussian::~Gaussian() {
@@ -63,7 +63,7 @@ int Gaussian::getKernelSize() const
   return 2 * (int)(2 * sigma) + 3;
 }
 
-void Gaussian::filter(const pixelf *in, pixelf *out) const
+void Gaussian::filter(vec2 const & size, const pixelf *in, pixelf *out) const
 {
   convolution(in, out, kernel, ksize, size);
 }

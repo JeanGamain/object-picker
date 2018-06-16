@@ -27,7 +27,7 @@ public:
   Canny(vec2 const & size, unsigned char * state, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
   ~Canny();
 
-  void			scan(image<pixelf> const & in, image<pixelf> const & out);
+  image<pixelf> *	scan(image<pixelf> const & in);
   bool			getEdge(edge & newedge,
 				cordinate position,
 				unsigned int dump,
@@ -44,12 +44,15 @@ public:
   void setBlur(float s);
   void setDump(unsigned int d);
   void setMinLength(unsigned int l);
-  
   float getMax() const;
   float getMin() const;
-  float getBlur() const;
+  float	getBlur() const;
   unsigned int getDump() const;
   unsigned int getMinLength() const;
+
+private:
+  static void	axisConvolution(image<pixelf> const & in, cordinate pos,
+				pixelf * g, pixelf * dir);
   
 private:
   vec2		size;
@@ -73,55 +76,7 @@ private:
 public:
   int		matrixIdx;
 
-  const pixelf sobel5X[25] = {
-    2, 2, 4, 2, 2,
-    1, 1, 2, 1, 1,
-    0, 0, 0, 0, 0,
-    -1  -1, -2, -1, -1,
-    -2, -2, -4, -2, -2,
-  };
-
-  const pixelf sobel5Y[25] = {
-    -2, -1, 0, 1, 2,
-    -2, -1, 0, 1, 2,
-    -4, -2, 0, 2, 4,
-    -2  -1, 0, 1, 2,
-    -2, -1, 0, 1, 2,
-  };
-
-  const pixelf scharr3X[9] = {
-    3, 10, 2,
-    0, 0, 0,
-    -3,-10,-3
-  };
-
-  const pixelf scharr3Y[9] = {
-    3, 0, -3,
-    10, 0, -10,
-    3, 0, -3
-  };
-  
-  const pixelf sobel3X[9] = {
-    1, 2, 1,
-    0, 0, 0,
-    -1,-2,-1
-  };
-
-  const pixelf sobel3Y[9] = {
-    -1, 0, 1,
-    -2, 0, 2,
-    -1, 0, 1
-  };
-  
-  const pixelf * matrix[3][2] =
-    {
-      { sobel3X, sobel3Y },
-      { sobel5X, sobel5Y },
-      { scharr3X, scharr3Y },
-    };
-  
-  const int matrixSize[3] = { 3, 5, 3 };
-  const int matrixExtreme[3] = { 4, 12, 16 };
+  static const pixelf sobel3[2][9];
 
   enum   D {
     NW = 0, N, NE,
@@ -129,11 +84,7 @@ public:
     SW, S, SE
   };
   
-  const vec2   dir[8] = {
-    {-1, -1}, {0, -1}, {1, -1},
-    {-1, 0},           {1, 0},
-    {-1, 1},  {0, 1},  {1, 1}
-  };
+  static const vec2   dir[8];
   /*
   const vec2   dirNormal[2][8] = {
     {
@@ -148,19 +99,8 @@ public:
     }
   };
   */ 
-  const vec2   dirNormal[2][8] = {
-    {
-      {-1, 1}, {-1, 0}, {-1, -1},
-      {0, 1},           {0, -1},
-      {-1, -1}, {-1, 0},  {1, -1}
-    },
-    {
-      {1, -1}, {1, 0}, {1, 1},
-      {0, -1},          {0, 1},
-      {1, 1},  {1, 0}, {-1, 1}
-    }
-  };
-  const unsigned char minEdgeGroupId = 2;
+  static const vec2   dirNormal[2][8];
+  static const unsigned char minEdgeGroupId;
 };
 
 #endif /* !CANNY_HPP_ */

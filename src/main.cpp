@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <stdint.h>
 #include <math.h>
 #include <stdlib.h>
@@ -78,7 +79,7 @@ static void unlock(void *data, void *, void *const *p_pixels)
   
   img->pixel = static_cast<pixel *>(*p_pixels);
   if (renderMode != 1) {
-    objectpick->detect(img);
+    objectpick->detect(*img);
   }
 
   showfps();
@@ -142,7 +143,7 @@ int main(int argc, char *argv[])
   libvlc_video_set_callbacks(mp, lock, unlock, display, &ctx);
   //libvlc_video_set_key_input(mp, 1);
   
-  printf("size: %d %d\n", size.x, size.y);
+  std::cout << "size: " << size.x << " " << size.y << std::endl;
   
   
   /*

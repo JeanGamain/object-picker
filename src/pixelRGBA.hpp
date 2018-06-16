@@ -129,6 +129,10 @@ struct pixelrgba
     return pixel.c[2];
   }
 
+  void set(float rvba) {
+    set((uint8_t)rvba);
+  }
+  
   void set(uint8_t rvba) {
     pixel.c[0] = rvba;
     pixel.c[1] = rvba;

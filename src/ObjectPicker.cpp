@@ -23,7 +23,8 @@ ObjectPicker::ObjectPicker(vec2 size)
     maxPixelDiff(10.0f),
     xrayFeaturesDetector(size / 2, tmin, tmax, colorSplitDetetionRay),
     canny(Canny(size, state, dump, minlength, tmin, tmax, sigma)),
-    inbw(image<pixelf>(size)),
+    greyScaleImg(image<pixelf>(size)),
+    blurGreyScaleImg(image<pixelf>(size)),
     lock()
 {
   PARMVSVAR(0, 30, 0.01, &sigma, "canny blur");
@@ -36,27 +37,24 @@ ObjectPicker::~ObjectPicker() {
   delete(state);
 }
 
-void *		ObjectPicker::detect(image<pixel> * img) {
+void *		ObjectPicker::detect(image<pixel> & img) {
+  assert(img.pixel != NULL);
+  assert(img.size == size);
 
-  static float	lastsigma = sigma;
+  static float lastsigma = sigma;
   if (lastsigma != sigma) {
     lastsigma = sigma;
     canny.setBlur(sigma);
   }
-
-  assert(img != NULL && img->pixel != NULL);
-  assert(img->size == size);
-
-  #pragma omp parallel for
-  for (int x = 0; x < (img->size.x * img->size.y); x++) {
-      inbw.pixel[x].set(img->pixel[x].get());
-  }
+  
+  img.getGreyScale(greyScaleImg);
+  
+  
   if (renderMode == 2) {
-    for (int x = 0; x < (img->size.x * img->size.y); x++) {
-      img->pixel[x].set((uint8_t)inbw.pixel[x].get());
-    }
+    img.set(greyScaleImg);
     return NULL;
   }
+  
   
   /*
   if (resize > 0) {
@@ -64,18 +62,18 @@ void *		ObjectPicker::detect(image<pixel> * img) {
     newin = G;
     }*/
   
-  image<pixelf> * scany = canny.scan(&inbw);
+  image<pixelf> * scany = canny.scan(greyScaleImg);
 
-  if (renderMode == 3) {
-    for (int x = 0; x < (img->size.x * img->size.y); x++) {
-      img->pixel[x].set((uint8_t)(ABS(scany->pixel[x].get()) / (canny.matrixExtreme[canny.matrixIdx] / 2)));
+  if (renderMode == 3 || renderMode == 4) {
+    for (int x = 0; x < (img.size.x * img.size.y); x++) {
+      img.pixel[x].set((uint8_t)(ABS(scany->pixel[x].get()) / 4));
     }
     return NULL;
   }
   
   // if lock use lock
-  objectFeatures objectFeatures = detectFeatures(scany, img);
-  objectEdges edges = findEdges(objectFeatures, img, dump);
+  objectFeatures objectFeatures = detectFeatures(scany, &img);
+  objectEdges edges = findEdges(objectFeatures, &img, dump);
 
   //render(img, edges);
   optimizeDetection(lastObjectPosition);

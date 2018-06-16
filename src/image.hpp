@@ -7,40 +7,41 @@
 #include <string.h>
 #include "math.hpp"
 #include "vec2.hpp"
-//#include "GreyScale.hpp"
+#include "pixelf.hpp"
 
 template <class T>
 class image {
 
 public:
   vec2		size;
+  unsigned int	length;
   T *		pixel;
 
 public:
 
   image(int width, int height)
-    : size(vec2(width, height)), pixel(NULL)
+    : size(vec2(width, height)), length(width * height), pixel(NULL)
   {
-    pixel = (T*)malloc(sizeof(T) * width * height);
-    memset(pixel, 0, sizeof(T) * width * height);
+    pixel = (T*)malloc(sizeof(T) * length);
+    memset(pixel, 0, sizeof(T) * length);
   }
   
   image(vec2 size)
-    : size(size), pixel(NULL)
+    : size(size),  length(size.x * size.y), pixel(NULL)
   {
-    pixel = (T*)malloc(sizeof(T) * size.x * size.y);
-    memset(pixel, 0, sizeof(T) * size.x * size.y);
+    pixel = (T*)malloc(sizeof(T) * length);
+    memset(pixel, 0, sizeof(T) * length);
   }
   
   image(image<T> const & i)
-    : size(i.size), pixel(NULL)
+    : size(i.size),  length(i.length), pixel(NULL)
   {
-    pixel = (T*)malloc(sizeof(T) * size.x * size.y);  
-    memcpy(pixel, i.pixel, sizeof(T) * size.x * size.y);
+    pixel = (T*)malloc(sizeof(T) * length);  
+    memcpy(pixel, i.pixel, sizeof(T) * length);
   }
 
   image(int width, int height, T *i)
-    : size(width, height), pixel(i)
+    : size(width, height),  length(width * height), pixel(i)
   {
     // pixel = (T*)malloc(sizeof(T) * width * height);
     //memcpy(pixel, i, sizeof(T) * height * width);
@@ -65,25 +66,19 @@ public:
     return *this;
   }
 
+  void		set(const image<pixelf> & in) {
+    assert(length == in.length);
+
+    for (unsigned int x = 0; x < length; x++) {
+      pixel[x].set(in.pixel[x].get());
+    }
+  }
+  
   image &	clear() {
     memset(pixel, 0, sizeof(T) * size.x * size.y);
     return *this;
   }
   
-  image &	blend(const image & , float) {
-    const char normcolor;
-    
-  /*  for (int x = 0; i < (i.size.x * i.size.y); x++) {
-      pixel[x].setr((image[x].getr() + (i.image[x].getr() * p)) / 2);
-      pixel[x].setv((image[x].getv() + (i.image[x].getv() * p)) / 2);
-      pixel[x].setb((image[x].getb() + (i.image[x].getb() * p)) / 2);
-      }*/
-    return *this;
-  }
-
-  void		normalize(){
-  }
-
   void	resize(image<T> * const b, float resizex, float resizey) const {
     vec2 s = { cordinate(size.x * resizex), cordinate(size.y * resizey) };
     double sum;
@@ -139,11 +134,13 @@ public:
     return true;
   }
 
-  /*  image<pixelf> toGreyScale(image<pixelf> const & out) {
-    GreyScale procesor;
-
-    return procesor::process<T>(this, out);
-    }*/
+  void	getGreyScale(image<pixelf> & out) const {
+    assert(out.length == length);
+#pragma omp parallel for
+    for (unsigned int x = 0; x < length; x++) {
+      out.pixel[x].set(pixel[x].get());
+    }
+  }
 };
 
 #endif /* !IMAGE */

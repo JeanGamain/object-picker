@@ -208,11 +208,11 @@ std::list<XrayFeatures::colorSplit>::iterator		XrayFeatures::splitScoreThreshold
 }
 
 void		XrayFeatures::aimTarget(vec2 aimTargetPosition) {
-  //(void)aimTargetPosition;
-  aimPosition = (aimTargetPosition * aimRatio[0] +
+  (void)aimTargetPosition;
+  /*aimPosition = (aimTargetPosition * aimRatio[0] +
 		 aimPosition * aimRatio[1] +
 		 originalAimPosition * aimRatio[2]
-		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);
+		 ) / (aimRatio[0] + aimRatio[1] + aimRatio[2]);*/
 }
 
 void		XrayFeatures::detectColorSplit(image<pixelf> * scany,

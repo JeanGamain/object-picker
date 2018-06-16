@@ -32,7 +32,7 @@ Canny::Canny(vec2 const & size,
     tmin(tmin),
     tmax(tmax),
     sigma(sigma),
-    blur((sigma > 0) ? new Gaussian(size, sigma) : NULL),
+    blur((sigma > 0) ? new Gaussian(sigma) : NULL),
     matrixIdx(0)
 {
   G = new image<pixelf>(size);
@@ -75,59 +75,124 @@ Canny::~Canny() {
 }
 
 
-void Canny::scan(image<pixelf> const & in, image<pixelf> & out)
+inline void	Canny::axisConvolution(image<pixelf> const & in, cordinate pos,
+				       pixelf * g, pixelf * dir)
 {
-  assert(in->pixel != NULL);
+  cordinate	kdir[8];
+  
+  kdir[0] = pos + in.size.x;
+  kdir[1] = pos - in.size.x;
+  kdir[2] = pos + 1;
+  kdir[3] = pos - 1;
+  kdir[4] = kdir[0] + 1;
+  kdir[5] = kdir[0] - 1;
+  kdir[6] = kdir[1] + 1;
+  kdir[7] = kdir[1] - 1;
+  /*
+    7 1 6
+    3   2
+    5 0 4
+  */
+  double Gxy =
+    in.pixel[kdir[6]] * sobel3[0][2] +
+    in.pixel[kdir[5]] * sobel3[0][6];
+  double Gx = Gxy +
+    in.pixel[kdir[7]] * sobel3[0][0] + in.pixel[kdir[1]] * sobel3[0][1] +
+    in.pixel[kdir[0]] * sobel3[0][7] + in.pixel[kdir[4]] * sobel3[0][8];
+  double Gy = Gxy +
+    in.pixel[kdir[7]] * sobel3[1][0] + in.pixel[kdir[3]] * sobel3[1][3] +
+    in.pixel[kdir[2]] * sobel3[1][5] + in.pixel[kdir[4]] * sobel3[1][8];
+  
+  // calc angle
+  //G->pixel[x].set(ABS(Gx->pixel[x].get() + Gy->pixel[x].get()));
+  g[pos] = (npixel)(hypot(Gx, Gy));
+  dir[pos] = (npixel)(fmodf(atan2f(Gx, Gy) + M_PI, M_PI) / M_PI * 8);
+}
 
-  image<pixelf> * newin = in;
+
+image<pixelf> *	Canny::scan(image<pixelf> const & in)
+{
+  /*
+  const vec2 vecDirAssoc[] {
+    
+  }*/
+    
+  assert(in.pixel != NULL);
+  assert(in.size == size);
 
   // clear output
   if (blur != NULL) {
-    memcpy(nms->pixel, newin->pixel, size.x * size.y * sizeof(pixelf));
-    blur->filter(newin->pixel, nms->pixel);
-    newin = nms;
+    memcpy(nms->pixel, in.pixel, in.length * sizeof(pixelf));
+    blur->filter(in.size, in.pixel, nms->pixel);
   }
-  //printf("start\n");
-  convolution(newin->pixel, Gx->pixel, matrix[matrixIdx][1], matrixSize[matrixIdx], size);
-  convolution(newin->pixel, Gy->pixel, matrix[matrixIdx][0], matrixSize[matrixIdx], size);
-  //printf("end\n");
-
+  
   #pragma omp parallel for
-  for (int x = 1; x < (size.x * size.y); x++) {
-    G->pixel[x].set((float)(hypot(Gx->pixel[x].get(), Gy->pixel[x].get())));
-    //G->pixel[x].set(ABS(Gx->pixel[x].get() + Gy->pixel[x].get()));
+  for (int x = 1; x < in.size.x - 1; x++) {
+    for (int y = 1; y < in.size.y - 1; y++) {
+      axisConvolution(*nms, in.size.x * y + x, G->pixel, Gx->pixel);      
+    }
   }
-
   #pragma omp parallel for
-  for (int x = 1; x < size.x - 1; x++) {
-    for (int y = 1; y < size.y - 1; y++) {
-      const int c = size.x * y + x;
+  for (int x = 1; x < in.size.x - 1; x++) {
+    for (int y = 1; y < in.size.y - 1; y++) {
+      const int c = in.size.x * y + x;
 
-      const float eDir = (npixel)(fmodf(atan2f(Gy->pixel[c].get(),
-						      Gx->pixel[c].get()) + M_PI,
-				     M_PI) / M_PI * 8);
-      int nord = c - size.x;
-      int sud = c + size.x;
-      if (	  
-	  ((eDir > 3 && eDir <= 5)			// 90°
-	   && G->pixel[c] > G->pixel[nord]		// N
-	   && G->pixel[c] > G->pixel[sud]) ||		// S
-	  
-	  ((eDir <= 1 || eDir > 7)			// 0°
-	   && G->pixel[c] > G->pixel[c - 1]		// W
-	   && G->pixel[c] > G->pixel[c + 1]) ||		// E
+      int nord = c - in.size.x;
+      int sud = c + in.size.x;
+      
+      float eDir = Gx->pixel[c].pixel;
+      if (
+	  ((eDir > 3 && eDir <= 5)// 90°
+	   && G->pixel[c] > G->pixel[nord]// N
+	   && G->pixel[c] > G->pixel[sud]) ||// S
 
-	  ((eDir > 1 && eDir <= 3)			// 45°
-	   && G->pixel[c] > G->pixel[nord + 1]		// NE
-	   && G->pixel[c] > G->pixel[sud - 1]) ||	// SW
+	  ((eDir <= 1 || eDir > 7)// 0°
+	   && G->pixel[c] > G->pixel[c - 1]// W
+	   && G->pixel[c] > G->pixel[c + 1]) ||// E
 
-	  ((eDir > 5 && eDir <= 7)			// 135°
-	   && G->pixel[c] > G->pixel[nord - 1]		// NW
-	   && G->pixel[c] > G->pixel[sud + 1])		// SE
-		  )
+	  ((eDir > 1 && eDir <= 3)// 45°
+	   && G->pixel[c] > G->pixel[nord + 1]// NE
+	   && G->pixel[c] > G->pixel[sud - 1]) ||// SW
+
+	  ((eDir > 5 && eDir <= 7)// 135°
+	   && G->pixel[c] > G->pixel[nord - 1]// NW
+	   && G->pixel[c] > G->pixel[sud + 1])// SE
+	  )
 	nms->pixel[c] = G->pixel[c];
       else
 	nms->pixel[c] = 0;
+      /*
+      if (
+	  ((eDir > 3 && eDir <= 5)			// 90°
+	   && G->pixel[c] > G->pixel[nord]		// N
+	   && G->pixel[c] > G->pixel[sud])){		// S
+	kdir = vec2(3, 4);
+      }
+      if ((eDir <= 1 || eDir > 7)			// 0°
+	   && G->pixel[c] > G->pixel[c - 1]		// W
+	  && G->pixel[c] > G->pixel[c + 1]) {		// E
+	kdir = vec2(1, 6);
+      }
+      if ((eDir > 1 && eDir <= 3)			// 45°
+	  && G->pixel[c] > G->pixel[nord + 1]		// NE
+	  && G->pixel[c] > G->pixel[sud - 1]) {		// SW
+	kdir = vec2(2, 5);
+      }
+      if ((eDir > 5 && eDir <= 7) 			// 135°
+	  && G->pixel[c] > G->pixel[nord - 1]		// NW
+	  && G->pixel[c] > G->pixel[sud + 1]) {		// SE
+	kdir = vec2(0, 7);
+      }
+      int cDir = (int)(round(Gx->pixel[c].pixel)) % 7;
+      if (G->pixel[c] > G->pixel[c + dir[cDir].to1D(in.size.x)] &&
+	  G->pixel[c] > G->pixel[c + (-dir[cDir]).to1D(in.size.x)])
+	nms->pixel[c] = G->pixel[c];
+      else {
+	if (kdir.x != -1) {
+	  printf("FUCK %lu %lu -> %d\n", kdir.x, kdir.y, cDir);
+	}
+	nms->pixel[c] = 0;
+	}*/
     }
   }
   return nms;
@@ -254,7 +319,7 @@ void Canny::setBlur(float s) {
     delete(blur);
   blur = NULL;
   if (s > 0) {
-    blur = new Gaussian(size, sigma);
+    blur = new Gaussian(sigma);
   }
 }
 
@@ -285,3 +350,85 @@ unsigned int Canny::getDump() const {
 unsigned int Canny::getMinLength() const {
   return minlength;
 }
+
+const pixelf Canny::sobel3[2][9] =
+  {
+    {
+      1, 2, 1,
+      0, 0, 0,
+      -1,-2,-1
+    },
+    {
+      -1, 0, 1,
+      -2, 0, 2,
+      -1, 0, 1
+    }
+  };
+
+const vec2	Canny::dir[8] = {
+  {-1, -1}, {0, -1}, {1, -1},
+  {-1, 0},           {1, 0},
+  {-1, 1},  {0, 1},  {1, 1}
+};
+
+const vec2	Canny::dirNormal[2][8] = {
+  {
+    {-1, 1}, {-1, 0}, {-1, -1},
+    {0, 1},           {0, -1},
+    {-1, -1}, {-1, 0},  {1, -1}
+  },
+  {
+    {1, -1}, {1, 0}, {1, 1},
+    {0, -1},          {0, 1},
+    {1, 1},  {1, 0}, {-1, 1}
+  }
+};
+
+const unsigned char	Canny::minEdgeGroupId = 2;
+
+/*
+const pixelf Canny::sobel5[2][25] =
+  {
+    {
+      2, 2, 4, 2, 2,
+      1, 1, 2, 1, 1,
+      0, 0, 0, 0, 0,
+      -1  -1, -2, -1, -1,
+      -2, -2, -4, -2, -2,
+    },
+    {
+      -2, -1, 0, 1, 2,
+      -2, -1, 0, 1, 2,
+      -4, -2, 0, 2, 4,
+      -2  -1, 0, 1, 2,
+      -2, -1, 0, 1, 2,
+    }
+  };
+
+const pixelf Canny::scharr3[2][9] =
+  {
+    {
+      3, 10, 2,
+      0, 0, 0,
+      -3,-10,-3
+    },
+    {
+      3, 0, -3,
+      10, 0, -10,
+      3, 0, -3
+    }
+  };
+  const vec2   dirNormal[2][8] = {
+    {
+      {-1, 1}, {1, 0}, {-1, -1},
+      {0, -1},           {0, -1},
+      {-1, -1}, {1, 0},  {-1, 1}
+    },
+    {
+      {1, -1}, {-1, 0}, {1, 1},
+      {0, 1},          {0, 1},
+      {1, 1},  {-1, 0}, {1, -1}
+    }
+  };
+
+*/  
