@@ -196,6 +196,11 @@ struct vec2
     return reinterpret_cast<cordinate *>(this)[i];
   }
   
+  bool		in(vec2 min, vec2 max) const
+  {
+    return *this > min && *this < max;
+  }
+  
   void		clear()
   {
     x = 0;
@@ -220,7 +225,7 @@ struct vec2
     return cordinate(sqrt(x * x + y * y));
   }
   
-  vec2 &		normalie()
+  vec2 &		norm()
   {
     cordinate len = length();
     if (len != 0)

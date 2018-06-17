@@ -32,51 +32,48 @@ Canny::Canny(vec2 const & size,
     tmin(tmin),
     tmax(tmax),
     sigma(sigma),
-    blur((sigma > 0) ? new Gaussian(sigma) : NULL),
-    matrixIdx(0)
+    blur((sigma > 0) ? new Gaussian(sigma) : NULL)
 {
-  G = new image<pixelf>(size);
-  Gx = new image<pixelf>(size);
-  Gy = new image<pixelf>(size);
+  rawEdgeBuffer = new rawEdgePixel[size.x * size.y];
   nms = new image<pixelf>(size);
   boundClearScan = new unsigned char[size.x * size.y];
- 
-  G->clear();
-  Gx->clear();
-  Gy->clear();
+
+  // ????
   nms->clear();
   memset(boundClearScan, 0, sizeof(char) * size.x * size.y);
   for (int x = 0; x < size.x; ++x) {
       boundClearScan[x] = 255;
+      rawEdgeBuffer[x].g = 0;
       boundClearScan[(size.y - 1) * size.x + x] = 255;
+      rawEdgeBuffer[(size.y - 1) * size.x + x].g = 0;
   }
   int sx = size.x - 1;
   for (int y = 0; y < size.y; ++y) {
       boundClearScan[y * size.x] = 255;
+      rawEdgeBuffer[y * size.x].g = 0;
       boundClearScan[y * size.x + sx] = 255;
+      rawEdgeBuffer[y * size.x + sx].g = 0;
   }
   // Reuse array
-  edges = (int*)Gx->pixel;
+  edges = new int[size.x * size.y];
   edgeList = new std::list<edge>();
 
   PARMVSVAR(1, 200, 1, &this->tmax, "canny max");
   PARMVSVAR(1, 200, 1, &this->tmin, "canny min");
-  PARMVSVAR(0, 2, 1, &this->matrixIdx, "canny matrixIdx");
 }
 
 Canny::~Canny() {
-  delete(G);
-  delete(Gx);
-  delete(Gy);
+  delete(rawEdgeBuffer);
   delete(nms);
   delete(blur);
   delete(boundClearScan);
+  delete(edges);
   delete(edgeList);
 }
 
 
-inline void	Canny::axisConvolution(image<pixelf> const & in, cordinate pos,
-				       pixelf * g, pixelf * dir)
+inline void	Canny::axisConvolution(image<pixelf> const & in, const cordinate pos,
+				       rawEdgePixel & out)
 {
   cordinate	kdir[8];
   
@@ -105,18 +102,13 @@ inline void	Canny::axisConvolution(image<pixelf> const & in, cordinate pos,
   
   // calc angle
   //G->pixel[x].set(ABS(Gx->pixel[x].get() + Gy->pixel[x].get()));
-  g[pos] = (npixel)(hypot(Gx, Gy));
-  dir[pos] = (npixel)(fmodf(atan2f(Gx, Gy) + M_PI, M_PI) / M_PI * 8);
+  out.g = (npixel)hypot(Gx, Gy);
+  out.axis = (npixel)atan2f(Gx, Gy);
 }
 
 
 image<pixelf> *	Canny::scan(image<pixelf> const & in)
 {
-  /*
-  const vec2 vecDirAssoc[] {
-    
-  }*/
-    
   assert(in.pixel != NULL);
   assert(in.size == size);
 
@@ -129,7 +121,7 @@ image<pixelf> *	Canny::scan(image<pixelf> const & in)
   #pragma omp parallel for
   for (int x = 1; x < in.size.x - 1; x++) {
     for (int y = 1; y < in.size.y - 1; y++) {
-      axisConvolution(*nms, in.size.x * y + x, G->pixel, Gx->pixel);      
+      axisConvolution(*nms, in.size.x * y + x, rawEdgeBuffer[in.size.x * y + x]);
     }
   }
   #pragma omp parallel for
@@ -140,59 +132,27 @@ image<pixelf> *	Canny::scan(image<pixelf> const & in)
       int nord = c - in.size.x;
       int sud = c + in.size.x;
       
-      float eDir = Gx->pixel[c].pixel;
+      float eDir = (npixel)(fmodf(rawEdgeBuffer[c].axis + M_PI, M_PI) / M_PI * 8);
       if (
 	  ((eDir > 3 && eDir <= 5)// 90°
-	   && G->pixel[c] > G->pixel[nord]// N
-	   && G->pixel[c] > G->pixel[sud]) ||// S
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[nord].g// N
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[sud].g) ||// S
 
 	  ((eDir <= 1 || eDir > 7)// 0°
-	   && G->pixel[c] > G->pixel[c - 1]// W
-	   && G->pixel[c] > G->pixel[c + 1]) ||// E
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[c - 1].g// W
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[c + 1].g) ||// E
 
 	  ((eDir > 1 && eDir <= 3)// 45°
-	   && G->pixel[c] > G->pixel[nord + 1]// NE
-	   && G->pixel[c] > G->pixel[sud - 1]) ||// SW
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[nord + 1].g// NE
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[sud - 1].g) ||// SW
 
 	  ((eDir > 5 && eDir <= 7)// 135°
-	   && G->pixel[c] > G->pixel[nord - 1]// NW
-	   && G->pixel[c] > G->pixel[sud + 1])// SE
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[nord - 1].g// NW
+	   && rawEdgeBuffer[c].g > rawEdgeBuffer[sud + 1].g)// SE
 	  )
-	nms->pixel[c] = G->pixel[c];
+	nms->pixel[c] = rawEdgeBuffer[c].g;
       else
 	nms->pixel[c] = 0;
-      /*
-      if (
-	  ((eDir > 3 && eDir <= 5)			// 90°
-	   && G->pixel[c] > G->pixel[nord]		// N
-	   && G->pixel[c] > G->pixel[sud])){		// S
-	kdir = vec2(3, 4);
-      }
-      if ((eDir <= 1 || eDir > 7)			// 0°
-	   && G->pixel[c] > G->pixel[c - 1]		// W
-	  && G->pixel[c] > G->pixel[c + 1]) {		// E
-	kdir = vec2(1, 6);
-      }
-      if ((eDir > 1 && eDir <= 3)			// 45°
-	  && G->pixel[c] > G->pixel[nord + 1]		// NE
-	  && G->pixel[c] > G->pixel[sud - 1]) {		// SW
-	kdir = vec2(2, 5);
-      }
-      if ((eDir > 5 && eDir <= 7) 			// 135°
-	  && G->pixel[c] > G->pixel[nord - 1]		// NW
-	  && G->pixel[c] > G->pixel[sud + 1]) {		// SE
-	kdir = vec2(0, 7);
-      }
-      int cDir = (int)(round(Gx->pixel[c].pixel)) % 7;
-      if (G->pixel[c] > G->pixel[c + dir[cDir].to1D(in.size.x)] &&
-	  G->pixel[c] > G->pixel[c + (-dir[cDir]).to1D(in.size.x)])
-	nms->pixel[c] = G->pixel[c];
-      else {
-	if (kdir.x != -1) {
-	  printf("FUCK %lu %lu -> %d\n", kdir.x, kdir.y, cDir);
-	}
-	nms->pixel[c] = 0;
-	}*/
     }
   }
   return nms;
@@ -210,8 +170,7 @@ bool		Canny::getEdge(edge & newedge,
   cordinate	kdir[9];
   cordinate	pos1d;
 
-  // nms->pixel[position] < tmax ||
-  if (detectionState[position] > 0)
+  if (detectionState[position] > 0 ||  nms->pixel[position] < tmin)
     return false;
   nedges = 1;
   newedge.position = position;
@@ -219,7 +178,6 @@ bool		Canny::getEdge(edge & newedge,
   newedge.color = 0; // use for pixel moy of the edge 
   newedge.point = new std::list<edgePoint>();
   detectionState[position] = edgeGroupId;
-  image.pixel[position].set((uint32_t)((uint32_t)16581375 / 100 * edgeGroupId + 10) ^ 1);
   edges[0] = position;
   do {
     kdir[8] = edges[--nedges];
@@ -235,16 +193,17 @@ bool		Canny::getEdge(edge & newedge,
       pos1d = kdir[k];
       if (nms->pixel[pos1d] >= tmin
 	  && detectionState[pos1d] < 1) {
-	//if (pos1d < (size.x * 1 + 1) || pos1d >= ((size.x - 1) + (size.y - 1) * size.x)) {
-	// printf("NOO\n");
-	// continue;
-	// }
+	if (!vec2(pos1d % size.x, pos1d / size.x).in(vec2(0, 0), img->size)) {
+	 printf("NOO\n");
+	 image.pixel[pos1d].setrvb(255, 0, 0);
+	 continue;
+	}
 	detectionState[pos1d] = edgeGroupId;
 	edges[nedges] = pos1d;
 	nedges++;
 	newedge.length++;
 	if (dump == 0 || newedge.length % dump == 0) {
-	  if (renderMode == 4 || renderMode == 5) {
+	  if (renderMode == 4 || renderMode == 5 || renderMode == 6) {
 	    image.pixel[pos1d].setrvb(0, 0, 255);
 	    continue;
 	  }
@@ -296,7 +255,10 @@ bool		Canny::getEdge(edge & newedge,
       }
     }
   } while (nedges > 0);
-  edgeGroupId++;
+  if (edgeGroupId == 255)
+    edgeGroupId = Canny::minEdgeGroupId;
+  else
+    edgeGroupId++;
   return true;
 }
 
@@ -351,19 +313,21 @@ unsigned int Canny::getMinLength() const {
   return minlength;
 }
 
-const pixelf Canny::sobel3[2][9] =
+
+
+const pixelf Canny::sobel3[2][9] = {
   {
-    {
-      1, 2, 1,
-      0, 0, 0,
-      -1,-2,-1
-    },
-    {
-      -1, 0, 1,
-      -2, 0, 2,
-      -1, 0, 1
-    }
-  };
+    1, 2, 1,
+    0, 0, 0,
+    -1,-2,-1
+  },
+  {
+    -1, 0, 1,
+    -2, 0, 2,
+    -1, 0, 1
+  }
+};
+
 
 const vec2	Canny::dir[8] = {
   {-1, -1}, {0, -1}, {1, -1},
@@ -385,50 +349,3 @@ const vec2	Canny::dirNormal[2][8] = {
 };
 
 const unsigned char	Canny::minEdgeGroupId = 2;
-
-/*
-const pixelf Canny::sobel5[2][25] =
-  {
-    {
-      2, 2, 4, 2, 2,
-      1, 1, 2, 1, 1,
-      0, 0, 0, 0, 0,
-      -1  -1, -2, -1, -1,
-      -2, -2, -4, -2, -2,
-    },
-    {
-      -2, -1, 0, 1, 2,
-      -2, -1, 0, 1, 2,
-      -4, -2, 0, 2, 4,
-      -2  -1, 0, 1, 2,
-      -2, -1, 0, 1, 2,
-    }
-  };
-
-const pixelf Canny::scharr3[2][9] =
-  {
-    {
-      3, 10, 2,
-      0, 0, 0,
-      -3,-10,-3
-    },
-    {
-      3, 0, -3,
-      10, 0, -10,
-      3, 0, -3
-    }
-  };
-  const vec2   dirNormal[2][8] = {
-    {
-      {-1, 1}, {1, 0}, {-1, -1},
-      {0, -1},           {0, -1},
-      {-1, -1}, {1, 0},  {-1, 1}
-    },
-    {
-      {1, -1}, {-1, 0}, {1, 1},
-      {0, 1},          {0, 1},
-      {1, 1},  {-1, 0}, {1, -1}
-    }
-  };
-
-*/  

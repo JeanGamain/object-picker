@@ -74,7 +74,7 @@ void *		ObjectPicker::detect(image<pixel> & img) {
   // if lock use lock
   objectFeatures objectFeatures = detectFeatures(scany, &img);
   objectEdges edges = findEdges(objectFeatures, &img, dump);
-
+  
   //render(img, edges);
   optimizeDetection(lastObjectPosition);
   /*
@@ -113,13 +113,24 @@ ObjectPicker::objectEdges	ObjectPicker::findEdges(const objectFeatures & feature
 
   
   canny.clearState();
-  for (std::list<XrayFeatures::edgePoint2d>::const_iterator i = features.xray.edges.begin();
-       i != features.xray.edges.end(); i++) {
-    if (canny.getEdge(newedge, (*i).position.to1D(img->size.x), mydump, features.xray, *img, maxPixelDiff, (*i).normal)
-	&& newedge.length > minlength) {
+  if (renderMode != 6 && renderMode != 7) {
+    for (std::list<XrayFeatures::edgePoint2d>::const_iterator i = features.xray.edges.begin();
+	 i != features.xray.edges.end(); i++) {
+      if (canny.getEdge(newedge, (*i).position.to1D(img->size.x), mydump, features.xray, *img, maxPixelDiff, (*i).normal)
+	  && newedge.length > minlength) {
       newPosition += (*i).position;
       edges.outerEdges.push_front(newedge);
       nb++;
+      }
+    }
+  } else {
+    for (cordinate x = 2; x < (img->size.x - 2); x++) {
+      for (cordinate y = 2; y < (img->size.y - 2); y++) {
+	if (canny.getEdge(newedge, y * img->size.x + x , mydump, features.xray, *img, maxPixelDiff, 0)
+	    && newedge.length > minlength) {
+	  edges.outerEdges.push_front(newedge);
+	}
+      }
     }
   }
   /*

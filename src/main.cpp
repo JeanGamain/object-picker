@@ -21,7 +21,7 @@
 
 vec2 size;
 image<pixel> * img;
-unsigned int renderMode = 0;
+unsigned int renderMode = 6;
 
 int setPause = 0;
 
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
-  PARMVSVAR(0, 6, 1, &renderMode, "render mode");
+  PARMVSVAR(0, 7, 1, &renderMode, "render mode");
   ctx.mutex = SDL_CreateMutex();
   /*
    *  Initialise libVLC
