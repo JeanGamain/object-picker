@@ -22,6 +22,12 @@ public:
     unsigned char		color;		
     std::list<edgePoint> *	point;
   }				edge;
+
+private:
+  typedef struct	raw_edge_pixel_t {
+    float		g;
+    float		axis;
+  }			rawEdgePixel;
   
 public:
   Canny(vec2 const & size, unsigned char * state, unsigned int dump, unsigned int minlength, const float tmin, const float tmax, const float sigma);
@@ -49,11 +55,11 @@ public:
   float	getBlur() const;
   unsigned int getDump() const;
   unsigned int getMinLength() const;
-
-private:
-  static void	axisConvolution(image<pixelf> const & in, cordinate pos,
-				pixelf * g, pixelf * dir);
   
+private:
+  static void	axisConvolution(image<pixelf> const & in, const cordinate pos,
+				rawEdgePixel & out);
+
 private:
   vec2		size;
   unsigned char	edgeGroupId;
@@ -65,19 +71,14 @@ private:
   float		sigma;
   Gaussian *	blur;
   
-  image<pixelf>	* G;
-  image<pixelf> * Gx;
-  image<pixelf>	* Gy;
+  rawEdgePixel * rawEdgeBuffer;
   image<pixelf> * nms;
   std::list<edge> * edgeList;
   unsigned char * boundClearScan;
   int *		  edges;
 
 public:
-  int		matrixIdx;
-
-  static const pixelf sobel3[2][9];
-
+  
   enum   D {
     NW = 0, N, NE,
     W, E,
@@ -99,6 +100,7 @@ public:
     }
   };
   */ 
+  static const pixelf sobel3[2][9];
   static const vec2   dirNormal[2][8];
   static const unsigned char minEdgeGroupId;
 };
