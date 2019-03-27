@@ -19,7 +19,7 @@ ObjectPicker::ObjectPicker(vec2 size)
     tmin(50),
     tmax(70),
     sigma(1.5f),
-    colorSplitDetetionRay(17),
+    colorSplitDetetionRay(39),
     maxPixelDiff(10.0f),
     xrayFeaturesDetector(size / 2, tmin, tmax, colorSplitDetetionRay),
     canny(Canny(size, state, dump, minlength, tmin, tmax, sigma)),
@@ -63,7 +63,10 @@ void *		ObjectPicker::detect(image<pixel> & img) {
     }*/
   
   image<pixelf> * scany = canny.scan(greyScaleImg);
-
+  if (scany == NULL) {
+    return NULL;
+  }
+  
   if (renderMode == 3 || renderMode == 4) {
     for (int x = 0; x < (img.size.x * img.size.y); x++) {
       img.pixel[x].set((uint8_t)(ABS(scany->pixel[x].get()) / 4));

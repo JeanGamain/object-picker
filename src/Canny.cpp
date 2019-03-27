@@ -116,8 +116,17 @@ image<pixelf> *	Canny::scan(image<pixelf> const & in)
   if (blur != NULL) {
     memcpy(nms->pixel, in.pixel, in.length * sizeof(pixelf));
     blur->filter(in.size, in.pixel, nms->pixel);
+    if (renderMode == 7) {
+      for (int x = 1; x < in.size.x - 1; x++) {
+	for (int y = 1; y < in.size.y - 1; y++) {
+	  img->pixel[in.size.x * y + x].set((uint8_t)nms->pixel[in.size.x * y + x].pixel);
+	}
+      }
+      //memcpy(img->pixel, nms->pixel, in.length * sizeof(pixelf));
+      return NULL;
+    }
   }
-  
+ 
   #pragma omp parallel for
   for (int x = 1; x < in.size.x - 1; x++) {
     for (int y = 1; y < in.size.y - 1; y++) {
@@ -170,7 +179,7 @@ bool		Canny::getEdge(edge & newedge,
   cordinate	kdir[9];
   cordinate	pos1d;
 
-  if (detectionState[position] > 0 ||  nms->pixel[position] < tmin)
+  if (nms->pixel[position] < tmin || detectionState[position] > 0)
     return false;
   nedges = 1;
   newedge.position = position;
@@ -193,11 +202,11 @@ bool		Canny::getEdge(edge & newedge,
       pos1d = kdir[k];
       if (nms->pixel[pos1d] >= tmin
 	  && detectionState[pos1d] < 1) {
-	if (!vec2(pos1d % size.x, pos1d / size.x).in(vec2(0, 0), img->size)) {
+	/*if (!vec2(pos1d % size.x, pos1d / size.x).in(vec2(0, 0), img->size)) {
 	 printf("NOO\n");
 	 image.pixel[pos1d].setrvb(255, 0, 0);
 	 continue;
-	}
+	}*/
 	detectionState[pos1d] = edgeGroupId;
 	edges[nedges] = pos1d;
 	nedges++;
@@ -227,11 +236,11 @@ bool		Canny::getEdge(edge & newedge,
 	    image.pixel[(dirNormal[start][dk] * 1).to1D(image.size.x) + pos1d],
 	    image.pixel[(dirNormal[!start][dk] * 1).to1D(image.size.x) + pos1d]
 	  };
-	  image.pixel[(dirNormal[start][dk] * 1).to1D(image.size.x) + pos1d].setrvb(0, 255, 0);
-	  image.pixel[(dirNormal[!start][dk] * 1).to1D(image.size.x) + pos1d].setrvb(0, 0, 255);
+	  //image.pixel[(dirNormal[start][dk] * 1).to1D(image.size.x) + pos1d].setrvb(0, 255, 0);
+	  //image.pixel[(dirNormal[!start][dk] * 1).to1D(image.size.x) + pos1d].setrvb(0, 0, 255);
 	  for (i = features.backgroundColor.begin();
 	       i != features.backgroundColor.end() && innerColor < 0;
-	       i++) {
+	       ++i) {
 	    if ((*i).diff(edgeColor[0]) <= maxPixelDiff)
 	      innerColor = 1;
 	    else if ((*i).diff(edgeColor[1]) <= maxPixelDiff)
@@ -242,8 +251,9 @@ bool		Canny::getEdge(edge & newedge,
 	  if (innerColor > -1) {
 	    for (i = features.objectColor.begin();
 		 i != features.objectColor.end() && (*i).diff(edgeColor[innerColor]) > maxPixelDiff;
-		 i++);
+		 ++i);
 	    if (i != features.objectColor.end()) {
+	      image.pixel[pos1d].setrvb(255, 255, 0);      
 	      newedge.point->push_front({ pos1d, (char)dk });
 	    } else {
 	      continue;

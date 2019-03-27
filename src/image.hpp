@@ -54,6 +54,7 @@ public:
   image &	operator=(const image & i) {
     if (&i == this)
       return this;
+    length = i.length;
     if (i.size == size) {
       memcpy(pixel, i.pixel, sizeof(T) * size.x * size.y);
     } else {
@@ -87,7 +88,8 @@ public:
     float sqr;
     
     assert(b != NULL);
-    assert(b->setSize(resizex, resizey));
+    bool resizeSucess = b->setSize(resizex, resizey);
+    assert(resizeSucess);
     assert(b->pixel != NULL && pixel != NULL);
     
     for (int x = 0; x < s.x; ++x) { 
@@ -114,6 +116,23 @@ public:
     b->size = s;
   }
 
+  image<pixelf>	getHalfResolutionImage() {
+    vec2 halfSize = vec2((size.x - size.x % 2) / 2, (size.y - size.y % 2) / 2);
+    image<pixelf> *halfScaleImg = new image<pixelf>(halfSize);
+
+    for (int x = 0; x < halfSize.x; ++x) {
+      for (int y = 0; y < halfSize.y; ++y) {
+	halfScaleImg[y * halfSize.x + x] = (
+	  this->pixel[y * halfSize.x + x] +
+	  this->pixel[y * halfSize.x + x + 1] +
+	  this->pixel[(y + 1) * halfSize.x + x] +
+	  this->pixel[(y + 1) * halfSize.x + x + 1]
+	  ) / 4;
+      }
+    }
+    
+    return halfScaleImg;
+  }
   
   bool	setSize(float s) {
     assert(s > 0);

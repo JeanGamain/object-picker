@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <iostream>
 #include <stdint.h>
@@ -116,7 +117,7 @@ int main(int argc, char *argv[])
       return EXIT_FAILURE;
     }
 
-  PARMVSVAR(0, 7, 1, &renderMode, "render mode");
+  PARMVSVAR(0, 8, 1, &renderMode, "render mode");
   ctx.mutex = SDL_CreateMutex();
   /*
    *  Initialise libVLC
